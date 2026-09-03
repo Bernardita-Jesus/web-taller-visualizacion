@@ -16,39 +16,53 @@
   }
   *{box-sizing:border-box;}
   html,body{
-    margin:0; padding:0; height:100%;
+    margin:0; padding:0;
+    height:100vh; overflow:hidden;
     background:var(--bg); color:var(--text);
     font-family:'Inter',sans-serif;
   }
-  body{ display:flex; flex-direction:column; }
+  body{ display:flex; flex-direction:column; height:100vh; }
 
   header{
-    padding:26px 32px 16px;
+    flex-shrink:0;
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:center;
+    gap:28px;
+    padding:24px 32px;
     border-bottom:1px solid var(--border);
   }
-  header h1{
+  header > *{ min-width:0; }
+  header .title{
+    display:flex;
+    flex-direction:column;
     font-family:'Fraunces',serif;
     font-weight:600;
-    font-size:26px;
-    margin:0 0 12px;
+    font-size:34px;
+    line-height:1.05;
+    margin:0;
   }
   header .intro{
     margin:0;
-    max-width:720px;
-    font-size:13.5px;
+    max-width:680px;
+    text-align:center;
+    font-size:13px;
     line-height:1.6;
     color:var(--muted);
   }
-  .top-row{
+  header .intro strong{
+    font-weight:600;
+    color:var(--text);
+  }
+  .controls{
+    justify-self:end;
     display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    flex-wrap:wrap;
+    flex-direction:column;
+    align-items:stretch;
+    gap:8px;
   }
   #renderBtn{
-    flex-shrink:0;
-    padding:9px 18px;
+    padding:7px 16px;
     background:#2b2620;
     color:#f2ecdd;
     border:none;
@@ -60,50 +74,109 @@
     letter-spacing:0.2px;
   }
   #renderBtn:hover{ background:#443c31; }
+  .mode-row{
+    display:flex;
+    gap:6px;
+  }
+  .mode-btn{
+    flex:1;
+    padding:5px 10px;
+    background:transparent;
+    color:var(--muted);
+    border:1px solid var(--border);
+    border-radius:5px;
+    font-family:'Inter',sans-serif;
+    font-size:11.5px;
+    font-weight:500;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .mode-btn:hover{ background:#e9e0c9; }
+  .mode-btn.active{
+    background:#2b2620;
+    color:#f2ecdd;
+    border-color:#2b2620;
+  }
 
   .layout{
     flex:1;
     min-height:0;
     display:flex;
+    overflow:hidden;
   }
   #symbolLegend{
-    width:230px;
+    width:236px;
     flex-shrink:0;
     border-right:1px solid var(--border);
-    padding:22px 20px 28px;
+    padding:14px 20px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
   }
   #symbolLegend h2{
     font-family:'Fraunces',serif;
     font-weight:600;
     font-size:15px;
-    margin:0 0 16px;
+    margin:0 0 3px;
     color:var(--text);
   }
   #symbolLegend h3{
-    font-size:11px;
+    font-family:'Fraunces',serif;
+    font-size:13.5px;
     text-transform:none;
-    color:var(--muted);
-    margin:20px 0 10px;
+    color:var(--text);
+    margin:0 0 20px;
     font-weight:600;
+  }
+  /* la barra lateral se parte en dos rectángulos de igual alto:
+     arriba las simbologías, abajo los colores por día. Cada título queda a
+     la misma distancia (14px) de la línea que tiene encima. */
+  .symbol-group{
+    display:flex;
+    flex-direction:column;
+    flex:1 1 0;
+    min-height:0;
+  }
+  .symbol-rows{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    flex:1 1 auto;
+    min-height:0;
+    gap:13px;
   }
   .symbol-row{
     display:flex;
     align-items:center;
     gap:10px;
-    margin-bottom:12px;
   }
   .symbol-row svg{
     color:var(--text);
     flex-shrink:0;
+    width:48px;
+    height:auto;
   }
   .symbol-row p{
     margin:0;
-    font-size:12px;
-    line-height:1.45;
+    font-size:11.5px;
+    line-height:1.4;
     color:var(--muted);
   }
   .symbol-row p strong{
     color:var(--text);
+  }
+  .day-group{
+    display:flex;
+    flex-direction:column;
+    flex:1 1 0;
+    min-height:0;
+    padding-top:14px;
+    border-top:1px solid var(--border);
+  }
+  #dayLegend{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
   }
   .day-row{
     display:flex;
@@ -111,11 +184,11 @@
     gap:8px;
     font-size:12.5px;
     color:var(--muted);
-    margin-bottom:5px;
-    padding:5px 7px;
+    padding:6px 8px;
     border-radius:5px;
     cursor:pointer;
     user-select:none;
+    border:1px solid var(--border);
     transition: background 0.15s ease, color 0.15s ease;
   }
   .day-row:hover{
@@ -124,6 +197,7 @@
   .day-row.selected{
     background:#2b2620;
     color:#f2ecdd;
+    border-color:#2b2620;
   }
   .day-row .dot{
     width:9px; height:9px; border-radius:50%; flex-shrink:0;
@@ -131,8 +205,10 @@
 
   #canvas-holder{
     flex:1;
+    min-width:0;
     min-height:0;
     position:relative;
+    overflow:hidden;
   }
   #canvas-holder canvas{ display:block; margin:0 auto; }
 </style>
@@ -140,17 +216,22 @@
 <body>
 
 <header>
-  <div class="top-row">
-    <h1>Sublimación poética</h1>
+  <h1 class="title"><span>Sublimación</span><span>poética</span></h1>
+  <p class="intro"><strong>¿Cuándo aparece el impulso por escribir un poema?</strong> Este proyecto nace de la inquietud por registrar aquello que ocurre antes de escribir; como el momento, el lugar, los estímulos y los estados emocionales que acompañan ese impulso.</p>
+  <div class="controls">
     <button id="renderBtn">Renderizar crecimiento</button>
+    <div class="mode-row">
+      <button id="modeWeekly" class="mode-btn active">Visualizaciones semanales</button>
+      <button id="modeMonthly" class="mode-btn">Visualizaciones mensuales</button>
+    </div>
   </div>
-  <p class="intro">¿Cuándo aparece el impulso por escribir un poema? Este proyecto nace de la inquietud por registrar aquello que ocurre antes de escribir: el momento, el lugar, los estímulos y los estados emocionales que acompañan ese impulso. Los datos recopilados se convierten en ramas, formas, líneas y colores, construyendo poco a poco un paisaje de los momentos en que la escritura aparece.</p>
 </header>
 
 <div class="layout">
   <aside id="symbolLegend">
+    <div class="symbol-group">
     <h2>Cómo leer las ramas</h2>
-
+    <div class="symbol-rows">
     <div class="symbol-row">
       <svg viewBox="0 0 60 24" width="52" height="22">
         <line x1="30" y1="2" x2="30" y2="22" stroke="currentColor" stroke-width="3"/>
@@ -165,7 +246,7 @@
         <line x1="4" y1="8" x2="44" y2="8" stroke="currentColor" stroke-width="2" stroke-dasharray="6 5"/>
         <line x1="4" y1="22" x2="44" y2="22" stroke="currentColor" stroke-width="2"/>
       </svg>
-      <p><strong>Segmentada</strong>: con estímulo.<br><strong>Continua</strong>: sin estímulo.</p>
+      <p><strong>Segmentada</strong>: con estímulo sensorial.<br><strong>Continua</strong>: sin estímulo sensorial.</p>
     </div>
 
     <div class="symbol-row">
@@ -181,11 +262,15 @@
         <line x1="4" y1="8" x2="24" y2="8" stroke="currentColor" stroke-width="3"/>
         <line x1="4" y1="22" x2="54" y2="22" stroke="currentColor" stroke-width="3"/>
       </svg>
-      <p><strong>Larga (doble)</strong>: magnitud mayor.<br><strong>Corta</strong>: magnitud normal.</p>
+      <p><strong>Corta</strong>: magnitud normal.<br><strong>Larga</strong>: magnitud mayor.</p>
+    </div>
+    </div>
     </div>
 
-    <h3>Color según el día</h3>
-    <div id="dayLegend"></div>
+    <div class="day-group">
+      <h3>Color según el día</h3>
+      <div id="dayLegend"></div>
+    </div>
   </aside>
 
   <div id="canvas-holder"></div>
@@ -295,16 +380,37 @@ DAYS.forEach((d,i)=>{
   dayLegend.appendChild(row);
 });
 
-// growth animation state, shared between the button and the sketch
+// growth animation state, shared between the buttons and the sketch
 const RENDER_DURATION = 20000; // ms each tree takes to grow fully
-const renderState = { started: false, currentWeek: 0, weekStartTime: 0 };
+// "semanal" -> un tronco por semana (comportamiento original)
+// "mensual" -> un solo tronco al doble de ancho del que salen las ramas de las semanas 1, 2 y 3
+let viewMode = "semanal";
+const renderState = { started: false, currentWeek: 0, weekStartTime: 0, monthStartTime: 0 };
 let branchAppear = new Map();
-document.getElementById("renderBtn").addEventListener("click", ()=>{
+
+function startRender(){
   renderState.started = true;
   renderState.currentWeek = 0;
   renderState.weekStartTime = performance.now();
+  renderState.monthStartTime = performance.now();
   branchAppear = new Map();
-});
+}
+
+document.getElementById("renderBtn").addEventListener("click", startRender);
+
+const modeWeeklyBtn = document.getElementById("modeWeekly");
+const modeMonthlyBtn = document.getElementById("modeMonthly");
+function setMode(mode){
+  if(viewMode === mode) return;
+  viewMode = mode;
+  modeWeeklyBtn.classList.toggle("active", mode === "semanal");
+  modeMonthlyBtn.classList.toggle("active", mode === "mensual");
+  branchAppear = new Map();
+  // si ya se estaba renderizando, reinicia el crecimiento en el nuevo modo
+  if(renderState.started) startRender();
+}
+modeWeeklyBtn.addEventListener("click", ()=> setMode("semanal"));
+modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
 
 new p5((p)=>{
   let holder;
@@ -314,19 +420,29 @@ new p5((p)=>{
   const TRUNK_BOTTOM_W = 15;
   const TRUNK_TOP_W = 3;
 
+  function fitToHolder(){
+    const w = Math.max(1, holder.clientWidth);
+    const h = Math.max(1, holder.clientHeight);
+    if(p.width === w && p.height === h) return;
+    p.resizeCanvas(w, h);
+    computeLayout();
+    paper = makePaper(p.width, p.height);
+  }
+
   p.setup = ()=>{
     holder = document.getElementById("canvas-holder");
     const c = p.createCanvas(holder.clientWidth, holder.clientHeight);
     c.parent(holder);
     computeLayout();
     paper = makePaper(p.width, p.height);
+    // keep the canvas locked to its container so the page never needs to scroll,
+    // even when web fonts finish loading and shift the header height afterwards
+    if(window.ResizeObserver){
+      new ResizeObserver(fitToHolder).observe(holder);
+    }
   };
 
-  p.windowResized = ()=>{
-    p.resizeCanvas(holder.clientWidth, holder.clientHeight);
-    computeLayout();
-    paper = makePaper(p.width, p.height);
-  };
+  p.windowResized = fitToHolder;
 
   function makePaper(w, h){
     const g = p.createGraphics(w, h);
@@ -363,8 +479,30 @@ new p5((p)=>{
     return p.map(hour, HOUR_MIN, HOUR_MAX, plotBottom, plotTop);
   }
 
-  function trunkHalfWidthAt(y){
-    return p.map(y, plotBottom, plotTop, TRUNK_BOTTOM_W/2, TRUNK_TOP_W/2);
+  function trunkHalfWidthAt(y, scale){
+    const s = scale || 1;
+    return p.map(y, plotBottom, plotTop, (TRUNK_BOTTOM_W * s)/2, (TRUNK_TOP_W * s)/2);
+  }
+
+  function drawTrunk(tx, growY, scale){
+    const s = scale || 1;
+    const topHalfW = trunkHalfWidthAt(growY, s);
+    p.noStroke();
+    p.fill(43, 38, 32, 225);
+    p.beginShape();
+    p.vertex(tx - (TRUNK_BOTTOM_W * s)/2, plotBottom);
+    p.vertex(tx - topHalfW, growY);
+    p.vertex(tx + topHalfW, growY);
+    p.vertex(tx + (TRUNK_BOTTOM_W * s)/2, plotBottom);
+    p.endShape(p.CLOSE);
+  }
+
+  function trunkLabel(txt, tx){
+    p.noStroke();
+    p.fill(43, 38, 32, 210);
+    p.textAlign(p.CENTER, p.TOP);
+    p.textSize(17);
+    p.text(txt, tx, plotBottom + 24);
   }
 
   function easeInOutQuad(t){
@@ -376,11 +514,21 @@ new p5((p)=>{
   }
 
   const BRANCH_GROW_MS = 1400; // how long each branch takes to extend once it sprouts
+  const MONTH_DURATION = RENDER_DURATION * 1.6; // el tronco mensual tarda más porque recibe las 3 semanas
 
   p.draw = ()=>{
     p.image(paper, 0, 0);
+    drawHourGrid();
+    const now = performance.now();
+    if(viewMode === "mensual"){
+      drawMonthly(now);
+    } else {
+      drawWeekly(now);
+    }
+  };
 
-    // hour gridlines + labels (every hour, shared across all three weeks)
+  // hour gridlines + labels (every hour, shared by both view modes)
+  function drawHourGrid(){
     p.textFont("Inter");
     p.textSize(11);
     const labelX = 28;
@@ -395,9 +543,10 @@ new p5((p)=>{
       p.textAlign(p.LEFT, p.CENTER);
       p.text(String(h).padStart(2,"0") + ":00", labelX, y);
     }
+  }
 
-    // three trunks — grow one at a time: week 1 finishes, then week 2, then week 3
-    const now = performance.now();
+  // WEEKLY — three trunks, grown one at a time: week 1 finishes, then week 2, then week 3
+  function drawWeekly(now){
     if(renderState.started){
       const elapsed = now - renderState.weekStartTime;
       const rawProgress = p.constrain(elapsed / RENDER_DURATION, 0, 1);
@@ -422,28 +571,10 @@ new p5((p)=>{
     const growYs = weekProgress.map(prog => p.lerp(plotBottom, plotTop, prog));
 
     trunkXs.forEach((tx, i)=>{
-      if(weekProgress[i] > 0){
-        const topHalfW = trunkHalfWidthAt(growYs[i]);
-        p.noStroke();
-        p.fill(43, 38, 32, 225);
-        p.beginShape();
-        p.vertex(tx - TRUNK_BOTTOM_W/2, plotBottom);
-        p.vertex(tx - topHalfW, growYs[i]);
-        p.vertex(tx + topHalfW, growYs[i]);
-        p.vertex(tx + TRUNK_BOTTOM_W/2, plotBottom);
-        p.endShape(p.CLOSE);
-      }
-
-      p.noStroke();
-      p.fill(43, 38, 32, 190);
-      p.textAlign(p.CENTER, p.TOP);
-      p.textSize(12.5);
-      p.text(WEEK_LABELS[i], tx, plotBottom + 16);
+      if(weekProgress[i] > 0) drawTrunk(tx, growYs[i], 1);
+      trunkLabel(WEEK_LABELS[i], tx);
     });
 
-    // branches — sprout once their own tree's growth passes their hour, then grow.
-    // Branches that would collide (same week/direction/hour) start from the same
-    // point but sway out of phase with each other, so movement is what keeps them apart.
     const visible = [];
     for(let i = 0; i < PULSIONES.length; i++){
       const e = PULSIONES[i];
@@ -452,12 +583,45 @@ new p5((p)=>{
       if(weekProgress[weekIdx] <= 0) continue;
       const y = hourY(e.hour);
       if(y >= growYs[weekIdx]){
-        visible.push({ i, e, weekIdx, y, dir: e.escrita ? 1 : -1 });
+        visible.push({ i, e, y, dir: e.escrita ? 1 : -1, trunkX: trunkXs[weekIdx], groupKey: "w" + weekIdx });
       }
     }
+    renderBranches(visible, now, 1);
+  }
+
+  // MONTHLY — a single trunk at double width; branches from weeks 1, 2 and 3 all sprout from it
+  function drawMonthly(now){
+    const trunkX = (plotLeft + plotRight) / 2;
+    let progress = 0;
+    if(renderState.started){
+      const elapsed = now - renderState.monthStartTime;
+      progress = easeInOutQuad(p.constrain(elapsed / MONTH_DURATION, 0, 1));
+    }
+    const growY = p.lerp(plotBottom, plotTop, progress);
+
+    if(progress > 0) drawTrunk(trunkX, growY, 2);
+    trunkLabel("Semanas 1 – 3", trunkX);
+
+    const visible = [];
+    for(let i = 0; i < PULSIONES.length; i++){
+      const e = PULSIONES[i];
+      if(selectedDay !== null && e.day !== selectedDay) continue;
+      if(progress <= 0) continue;
+      const y = hourY(e.hour);
+      if(y >= growY){
+        visible.push({ i, e, y, dir: e.escrita ? 1 : -1, trunkX, groupKey: "m" });
+      }
+    }
+    renderBranches(visible, now, 2);
+  }
+
+  // branches — sprout once the trunk's growth passes their hour, then grow.
+  // Branches that would collide (same trunk/direction/hour) start from the same
+  // point but sway out of phase with each other, so movement is what keeps them apart.
+  function renderBranches(visible, now, trunkScale){
     const overlapGroups = new Map();
     visible.forEach(v=>{
-      const key = v.weekIdx + "_" + v.dir + "_" + Math.round(v.e.hour * 4);
+      const key = v.groupKey + "_" + v.dir + "_" + Math.round(v.e.hour * 4);
       if(!overlapGroups.has(key)) overlapGroups.set(key, []);
       overlapGroups.get(key).push(v);
     });
@@ -472,12 +636,11 @@ new p5((p)=>{
       if(!branchAppear.has(v.i)) branchAppear.set(v.i, now);
       const age = now - branchAppear.get(v.i);
       const growFactor = easeOutCubic(p.constrain(age / BRANCH_GROW_MS, 0, 1));
-      drawBranch(v.e, v.y, growFactor, v.swayPhase, v.groupSize);
+      drawBranch(v.e, v.y, growFactor, v.swayPhase, v.groupSize, v.trunkX, trunkScale);
     });
-  };
+  }
 
-  function drawBranch(e, y, growFactor, swayPhase, groupSize){
-    const trunkX = trunkXs[(e.week || 1) - 1];
+  function drawBranch(e, y, growFactor, swayPhase, groupSize, trunkX, trunkScale){
     const dir = e.escrita ? 1 : -1;
     const sectionW = (plotRight - plotLeft) / 3;
     const baseLen = Math.min(70, sectionW * 0.28);
@@ -496,7 +659,7 @@ new p5((p)=>{
     const wind = Math.sin(t0 + swayPhase) * windAmp;
 
     // start exactly at the trunk's tapered surface, not its center line
-    const halfWidth = trunkHalfWidthAt(y);
+    const halfWidth = trunkHalfWidthAt(y, trunkScale);
     const startX = trunkX + dir * halfWidth;
 
     const col = p.color(DAY_COLORS[e.day]);
