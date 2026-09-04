@@ -80,7 +80,7 @@
     border-bottom:1px solid var(--border);
   }
   header > *{ min-width:0; }
-  header .title{
+  .title{
     display:flex;
     flex-direction:column;
     font-family:'Fraunces',serif;
@@ -89,7 +89,7 @@
     line-height:1.05;
     margin:0;
   }
-  header .intro{
+  .intro{
     margin:0;
     margin-top:8px;
     max-width:680px;
@@ -98,7 +98,7 @@
     line-height:1.5;
     color:var(--muted);
   }
-  header .intro strong{
+  .intro strong{
     display:block;
     font-family:'Fraunces',serif;
     font-size:23px;
@@ -200,6 +200,11 @@
     min-height:0;
     gap:13px;
   }
+  body.square-mode .symbol-rows{
+    justify-content:flex-end;
+    padding-bottom:0;
+    margin-bottom:-8px;
+  }
   .symbol-row{
     display:flex;
     align-items:center;
@@ -220,6 +225,18 @@
   .symbol-row p strong{
     color:var(--text);
   }
+  /* texto de simbología: versión "rect" (por defecto) vs versión "cuadrada"
+     (con título de fila), alternadas según body.square-mode -- ver pedido
+     del usuario de corregir la redacción SOLO en el formato cuadrado. */
+  .row-square{ display:none; }
+  body.square-mode .row-rect{ display:none; }
+  body.square-mode .row-square{ display:block; }
+  .row-title{
+    margin:0 0 3px;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--text);
+  }
   /* === 2b) CUADRADO "COLOR SEGÚN EL DÍA" ===
      mitad inferior de la barra, mismo ancho y alto que 2a.
      El border-top es la línea divisoria en el medio exacto de la barra. */
@@ -230,6 +247,13 @@
     min-height:0;
     padding-top:14px;
     border-top:1px solid var(--border);
+  }
+  body.square-mode .symbol-group{
+    flex:1 1 auto;
+  }
+  body.square-mode .day-group{
+    flex:0 0 auto;
+    margin-top:44px;
   }
   #dayLegend{
     display:flex;
@@ -260,6 +284,14 @@
   .day-row .dot{
     width:12px; height:12px; border-radius:50%; flex-shrink:0;
   }
+  body.square-mode #dayLegend .day-row{
+    padding:4px 6px;
+    font-size:11px;
+    gap:10px;
+  }
+  body.square-mode #dayLegend .day-row .dot{
+    width:10px; height:10px;
+  }
 
   /* === 3) DIAGRAMACIÓN — rectángulos donde van los datos ===
      *** NO CAMBIAR DIMENSIONES ***
@@ -277,7 +309,7 @@
   }
   #canvas-holder canvas{ display:block; }
   #formatBtn{
-    position:absolute;
+    position:fixed;
     right:16px;
     bottom:16px;
     width:38px;
@@ -298,6 +330,91 @@
     background:#2b2620;
     color:#f2ecdd;
     border-color:#2b2620;
+  }
+
+  /* =====================================================================
+     MODO CUADRADO (alternativa completa de página, activada por #formatBtn)
+
+     Pantalla 1 "landing": título + bajada + botones semanal/mensual,
+     centrados dentro de un cuadrado.
+     Pantalla 2 "viz" (al elegir semanal o mensual): el título y la bajada
+     se ocultan; a la izquierda quedan "Cómo leer las ramas" + "Color según
+     el día" + el botón Renderizar + los botones semanal/mensual; a la
+     derecha, la diagramación (árboles).
+
+     Los mismos elementos del modo rectangular (título, bajada, controles,
+     barra lateral, diagramación) se mueven de contenedor vía JS -- no hay
+     markup duplicado.
+     ===================================================================== */
+  body.square-mode header,
+  body.square-mode > .layout{ display:none; }
+
+  .square-stage{
+    display:none;
+    flex:1;
+    min-height:0;
+    width:100%;
+    align-items:center;
+    justify-content:center;
+  }
+  body.square-mode .square-stage{ display:flex; }
+
+  .square-box{
+    position:relative;
+    width:90vmin;
+    height:90vmin;
+    padding:32px;
+    box-sizing:border-box;
+    border:1px solid var(--border);
+    border-radius:4px;
+  }
+
+  .sq-landing{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding-top:64px;
+    text-align:center;
+    gap:20px;
+    width:100%;
+    height:100%;
+  }
+  body.square-viz .sq-landing{ display:none; }
+  .sq-landing .intro{ margin-top:24px; max-width:400px; text-wrap:balance; }
+  .sq-landing .intro br{ display:none; }
+  .sq-landing .intro strong{ margin-bottom:22px; }
+  .sq-landing .mode-row{ margin-top:60px; gap:26px; }
+
+  .sq-viz{
+    display:none;
+    width:100%;
+    height:100%;
+    gap:24px;
+  }
+  body.square-viz .sq-viz{ display:flex; }
+
+  .sq-legend{
+    width:220px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    overflow:hidden;
+  }
+  .sq-legend #symbolLegend{
+    width:100%;
+    flex:1 1 0;
+    min-height:0;
+    padding:0;
+    padding-top:14px;
+    border-right:none;
+  }
+  .sq-canvas{
+    flex:1;
+    min-width:0;
+    min-height:0;
+    display:flex;
   }
 </style>
 </head>
@@ -329,7 +446,13 @@
         <line x1="30" y1="8" x2="54" y2="4" stroke="currentColor" stroke-width="2"/>
         <line x1="30" y1="16" x2="6" y2="20" stroke="currentColor" stroke-width="2"/>
       </svg>
-      <p><strong>Derecha</strong>: fue escrita.<br><strong>Izquierda</strong>: no fue escrita.</p>
+      <div class="symbol-text">
+        <p class="row-rect"><strong>Derecha</strong>: fue escrita.<br><strong>Izquierda</strong>: no fue escrita.</p>
+        <div class="row-square">
+          <p class="row-title">Presencia del registro</p>
+          <p><strong>Derecha</strong>: escrito.<br><strong>Izquierda</strong>: no escrito.</p>
+        </div>
+      </div>
     </div>
 
     <div class="symbol-row">
@@ -337,7 +460,13 @@
         <line x1="4" y1="8" x2="44" y2="8" stroke="currentColor" stroke-width="2" stroke-dasharray="6 5"/>
         <line x1="4" y1="22" x2="44" y2="22" stroke="currentColor" stroke-width="2"/>
       </svg>
-      <p><strong>Segmentada</strong>: con estímulo sensorial.<br><strong>Continua</strong>: sin estímulo sensorial.</p>
+      <div class="symbol-text">
+        <p class="row-rect"><strong>Segmentada</strong>: con estímulo sensorial.<br><strong>Continua</strong>: sin estímulo sensorial.</p>
+        <div class="row-square">
+          <p class="row-title">Estímulo sensorial</p>
+          <p><strong>Segmentada</strong>: con estímulo.<br><strong>Continua</strong>: sin estímulo.</p>
+        </div>
+      </div>
     </div>
 
     <div class="symbol-row">
@@ -345,7 +474,13 @@
         <line x1="4" y1="8" x2="44" y2="8" stroke="currentColor" stroke-width="2"/>
         <path d="M4,22 Q14,16 24,22 T44,22" stroke="currentColor" fill="none" stroke-width="2"/>
       </svg>
-      <p><strong>Lisa</strong>: sentimiento bueno.<br><strong>Ondulada</strong>: sentimiento malo.</p>
+      <div class="symbol-text">
+        <p class="row-rect"><strong>Lisa</strong>: sentimiento bueno.<br><strong>Ondulada</strong>: sentimiento malo.</p>
+        <div class="row-square">
+          <p class="row-title">Sentimiento evocado</p>
+          <p><strong>Lisa</strong>: alegre.<br><strong>Ondulada</strong>: melancólico.</p>
+        </div>
+      </div>
     </div>
 
     <div class="symbol-row">
@@ -353,7 +488,13 @@
         <line x1="4" y1="8" x2="24" y2="8" stroke="currentColor" stroke-width="3"/>
         <line x1="4" y1="22" x2="54" y2="22" stroke="currentColor" stroke-width="3"/>
       </svg>
-      <p><strong>Corta</strong>: magnitud normal.<br><strong>Larga</strong>: magnitud mayor.</p>
+      <div class="symbol-text">
+        <p class="row-rect"><strong>Corta</strong>: magnitud normal.<br><strong>Larga</strong>: magnitud mayor.</p>
+        <div class="row-square">
+          <p class="row-title">Magnitud de la pulsión</p>
+          <p><strong>Corta</strong>: normal.<br><strong>Larga</strong>: mayor.</p>
+        </div>
+      </div>
     </div>
     </div>
     </div>
@@ -366,12 +507,28 @@
   </aside>
 
   <!-- 3) DIAGRAMACIÓN: rectángulos donde van los datos — NO CAMBIAR DIMENSIONES -->
-  <div id="canvas-holder">
-    <button id="formatBtn" title="Cambiar a formato cuadrado" aria-label="Cambiar a formato cuadrado">
-      <svg width="17" height="17" viewBox="0 0 17 17"><rect x="2" y="2" width="13" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-    </button>
+  <div id="canvas-holder"></div>
+</div>
+
+<!-- MODO CUADRADO: alternativa de página completa (ver #formatBtn), poblada
+     por JS moviendo los mismos elementos de arriba, no hay markup duplicado -->
+<div class="square-stage" id="squareStage">
+  <div class="square-box">
+    <div class="sq-landing" id="sqLanding"></div>
+    <div class="sq-viz" id="sqViz">
+      <div class="sq-legend" id="sqLegend"></div>
+      <div class="sq-canvas" id="sqCanvas"></div>
+    </div>
   </div>
 </div>
+
+<!-- botón para cambiar entre formato web (rectangular) y formato cuadrado.
+     position:fixed (ver CSS) así queda en el mismo lugar de la pantalla sin
+     importar el modo o pantalla (landing/viz) activos; por eso vive afuera
+     de #canvas-holder, que se oculta en la pantalla landing del cuadrado. -->
+<button id="formatBtn" title="Cambiar a formato cuadrado" aria-label="Cambiar a formato cuadrado">
+  <svg width="17" height="17" viewBox="0 0 17 17"><rect x="2" y="2" width="13" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+</button>
 
 <script>
 /* ---------------------------------------------------------------
@@ -498,6 +655,12 @@ document.getElementById("renderBtn").addEventListener("click", startRender);
 const modeWeeklyBtn = document.getElementById("modeWeekly");
 const modeMonthlyBtn = document.getElementById("modeMonthly");
 function setMode(mode){
+  // en modo cuadrado, elegir semanal o mensual pasa de la pantalla de
+  // título/bajada a la pantalla de leyenda + árboles (aunque el modo
+  // elegido ya fuera el activo)
+  if(document.body.classList.contains("square-mode") && !document.body.classList.contains("square-viz")){
+    toSquareViz();
+  }
   if(viewMode === mode) return;
   viewMode = mode;
   modeWeeklyBtn.classList.toggle("active", mode === "semanal");
@@ -509,6 +672,53 @@ function setMode(mode){
 modeWeeklyBtn.addEventListener("click", ()=> setMode("semanal"));
 modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
 
+/* ---------------------------------------------------------------
+   MODO CUADRADO — mueve los mismos elementos del header/barra lateral/
+   diagramación entre sus contenedores rectangulares y los del cuadrado
+   (#squareStage). No hay markup duplicado: appendChild reubica los nodos
+   reales, así que sus listeners (renderBtn, mode-btn, etc) siguen intactos.
+   #formatBtn NO se mueve: vive fuera de #canvas-holder, fijo en pantalla,
+   para estar visible en cualquier modo/pantalla (ver CSS position:fixed).
+------------------------------------------------------------------ */
+const headerEl = document.querySelector("header");
+const layoutEl = document.querySelector(".layout");
+const controlsEl = document.querySelector(".controls");
+const titleEl = document.querySelector(".title");
+const introEl = document.querySelector(".intro");
+const modeRowEl = document.querySelector(".mode-row");
+const renderBtnEl = document.getElementById("renderBtn");
+const symbolLegendEl = document.getElementById("symbolLegend");
+const canvasHolderEl = document.getElementById("canvas-holder");
+const sqLanding = document.getElementById("sqLanding");
+const sqLegend = document.getElementById("sqLegend");
+const sqCanvas = document.getElementById("sqCanvas");
+
+function toSquareMode(){
+  sqLanding.appendChild(titleEl);
+  sqLanding.appendChild(introEl);
+  sqLanding.appendChild(modeRowEl);
+  sqLegend.appendChild(renderBtnEl);
+  sqLegend.appendChild(symbolLegendEl);
+  sqCanvas.appendChild(canvasHolderEl);
+  document.body.classList.add("square-mode");
+  document.body.classList.remove("square-viz");
+}
+
+function toSquareViz(){
+  document.body.classList.add("square-viz");
+}
+
+function toRectMode(){
+  headerEl.appendChild(titleEl);
+  headerEl.appendChild(introEl);
+  controlsEl.appendChild(renderBtnEl);
+  controlsEl.appendChild(modeRowEl);
+  headerEl.appendChild(controlsEl);
+  layoutEl.appendChild(symbolLegendEl);
+  layoutEl.appendChild(canvasHolderEl);
+  document.body.classList.remove("square-mode", "square-viz");
+}
+
 new p5((p)=>{
   let holder;
   let trunkXs, plotTop, plotBottom, plotLeft, plotRight;
@@ -517,18 +727,12 @@ new p5((p)=>{
   const TRUNK_BOTTOM_W = 15;
   const TRUNK_TOP_W = 3;
 
-  // formato del canvas dentro de la diagramación: "rect" = ocupa todo el
-  // rectángulo (como antes) | "cuadrado" = canvas cuadrado centrado adentro.
-  // OJO: esto NO cambia las dimensiones del rectángulo de la diagramación
-  // (#canvas-holder), sólo el tamaño del canvas que se dibuja dentro.
-  let canvasFormat = "rect";
-
+  // el canvas siempre ocupa todo #canvas-holder; lo que cambia de tamaño
+  // es #canvas-holder mismo, según esté en el layout rectangular o dentro
+  // de .sq-canvas en el modo cuadrado (ver toSquareMode/toRectMode).
   function fitToHolder(force){
-    const hw = Math.max(1, holder.clientWidth);
-    const hh = Math.max(1, holder.clientHeight);
-    const side = Math.min(hw, hh);
-    const w = canvasFormat === "cuadrado" ? side : hw;
-    const h = canvasFormat === "cuadrado" ? side : hh;
+    const w = Math.max(1, holder.clientWidth);
+    const h = Math.max(1, holder.clientHeight);
     if(!force && p.width === w && p.height === h) return;
     p.resizeCanvas(w, h);
     computeLayout();
@@ -554,8 +758,12 @@ new p5((p)=>{
     const RECT_ICON = '<svg width="20" height="14" viewBox="0 0 20 14"><rect x="1.5" y="1.5" width="17" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
     const formatBtn = document.getElementById("formatBtn");
     formatBtn.addEventListener("click", ()=>{
-      canvasFormat = canvasFormat === "cuadrado" ? "rect" : "cuadrado";
-      const goingSquare = canvasFormat === "cuadrado";
+      if(document.body.classList.contains("square-mode")){
+        toRectMode();
+      } else {
+        toSquareMode();
+      }
+      const goingSquare = document.body.classList.contains("square-mode");
       formatBtn.classList.toggle("active", goingSquare);
       formatBtn.innerHTML = goingSquare ? RECT_ICON : SQUARE_ICON;
       const label = goingSquare ? "Volver a formato web" : "Cambiar a formato cuadrado";
