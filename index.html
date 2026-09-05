@@ -118,7 +118,7 @@
     gap:12px;
   }
   #renderBtn{
-    padding:9px 18px;
+    padding:7px 22px;
     background:#2b2620;
     color:#f2ecdd;
     border:none;
@@ -126,6 +126,8 @@
     font-family:'Inter',sans-serif;
     font-size:13.5px;
     font-weight:600;
+    line-height:1.3;
+    text-align:center;
     cursor:pointer;
     letter-spacing:0.2px;
   }
@@ -140,7 +142,7 @@
   }
   .mode-btn{
     flex:1;
-    padding:6px 11px;
+    padding:6px 16px;
     background:transparent;
     color:var(--muted);
     border:1px solid var(--border);
@@ -148,8 +150,9 @@
     font-family:'Inter',sans-serif;
     font-size:12px;
     font-weight:500;
+    line-height:1.35;
+    text-align:center;
     cursor:pointer;
-    white-space:nowrap;
   }
   .mode-btn:hover{ background:#e9e0c9; }
   .mode-btn.active{
@@ -203,13 +206,24 @@
     font-weight:600;
   }
   /* === 2a) CUADRADO "CÓMO LEER LAS RAMAS" + SIMBOLOGÍAS ===
-     mitad superior de la barra. El h2 va fijo arriba (a 14px de la línea
-     de arriba); las 4 filas van centradas en el espacio restante. */
+     mitad superior de la barra. En formato horizontal, el h2 va junto a
+     las 4 filas (no separado) y el bloque completo se centra en vertical;
+     además se corre 12px a la derecha para alinear su borde izquierdo con
+     el título "Sublimación poética" del header (padding 32px vs 20px de
+     la barra lateral). En formato cuadrado se mantiene el comportamiento
+     previo (h2 fijo arriba, filas ancladas abajo). */
   .symbol-group{
     display:flex;
     flex-direction:column;
     flex:1 1 0;
     min-height:0;
+  }
+  body:not(.square-mode) .symbol-group{
+    justify-content:flex-end;
+    padding-left:12px;
+  }
+  body:not(.square-mode) #symbolLegend h2{
+    margin-bottom:24px;
   }
   .symbol-rows{
     display:flex;
@@ -223,10 +237,16 @@
     justify-content:flex-end;
     margin-bottom:-28px;
   }
+  body:not(.square-mode) .symbol-rows{
+    flex:0 0 auto;
+  }
   .symbol-row{
     display:flex;
     align-items:center;
     gap:10px;
+  }
+  body:not(.square-mode) .symbol-row{
+    gap:8px;
   }
   .symbol-row svg{
     color:var(--text);
@@ -234,11 +254,25 @@
     width:48px;
     height:auto;
   }
+  /* en formato horizontal el ícono se agranda respecto al gap para que
+     los dibujos se vean bien, compensando con menos separación icono-texto
+     para que el texto no se corte contra el borde de la barra lateral */
+  body:not(.square-mode) .symbol-row svg{
+    width:44px;
+  }
   .symbol-row p{
     margin:0;
     font-size:11.5px;
     line-height:1.4;
     color:var(--muted);
+  }
+  /* al correr el bloque de simbología 12px a la derecha (alineado con el
+     título del header) queda menos ancho para el texto de cada fila; se
+     evita que cualquiera de las frases se corte en dos líneas dejándolas
+     bordear el padding derecho de la barra en vez de achicar los íconos
+     (ver memoria: nunca achicar el ícono para arreglar el corte de texto) */
+  body:not(.square-mode) .symbol-row p{
+    white-space:nowrap;
   }
   .symbol-row p strong{
     color:var(--text);
@@ -248,12 +282,6 @@
     font-size:11.5px;
     font-weight:600;
     color:var(--text);
-  }
-  /* fila "Estímulo sensorial": evita que "Segmentada: con estímulo." se
-     corte en dos líneas, sin achicar el ícono (se mantiene alineado a la
-     izquierda igual que las demás filas de simbología) */
-  .row-estimulo p{
-    white-space:nowrap;
   }
   /* === 2b) CUADRADO "COLOR SEGÚN EL DÍA" ===
      mitad inferior de la barra, mismo ancho y alto que 2a.
@@ -265,6 +293,14 @@
     min-height:0;
     padding-top:14px;
     border-top:1px solid var(--border);
+  }
+  /* mismo tratamiento que 2a: en formato horizontal el bloque
+     h3+lista se centra en vertical y se corre 12px a la derecha
+     para alinearse con el título "Sublimación poética" del header */
+  body:not(.square-mode) .day-group{
+    justify-content:center;
+    padding-left:12px;
+    border-top:none;
   }
   body.square-mode .symbol-group{
     flex:1 1 auto;
@@ -278,13 +314,16 @@
     flex-direction:column;
     gap:6px;
   }
+  body:not(.square-mode) #dayLegend{
+    gap:10px;
+  }
   .day-row{
     display:flex;
     align-items:center;
-    gap:13px;
-    font-size:12.5px;
+    gap:11px;
+    font-size:11px;
     color:var(--muted);
-    padding:6px 8px;
+    padding:5px 7px;
     border-radius:13px;
     cursor:pointer;
     user-select:none;
@@ -300,7 +339,7 @@
     border-color:#2b2620;
   }
   .day-row .dot{
-    width:12px; height:12px; border-radius:50%; flex-shrink:0;
+    width:10px; height:10px; border-radius:50%; flex-shrink:0;
   }
   body.square-mode #dayLegend .day-row{
     padding:4px 6px;
@@ -443,8 +482,8 @@
   <div class="controls">
     <button id="renderBtn">Renderizar crecimiento</button>
     <div class="mode-row">
-      <button id="modeWeekly" class="mode-btn active">Visualizaciones semanales</button>
-      <button id="modeMonthly" class="mode-btn">Visualizaciones mensuales</button>
+      <button id="modeWeekly" class="mode-btn active">Visualización<br>semanal</button>
+      <button id="modeMonthly" class="mode-btn">Visualización<br>mensual</button>
     </div>
   </div>
 </header>
@@ -468,7 +507,7 @@
       </div>
     </div>
 
-    <div class="symbol-row row-estimulo">
+    <div class="symbol-row">
       <svg viewBox="0 0 60 30" width="52" height="26">
         <line x1="4" y1="8" x2="44" y2="8" stroke="currentColor" stroke-width="2" stroke-dasharray="6 5"/>
         <line x1="4" y1="22" x2="44" y2="22" stroke="currentColor" stroke-width="2"/>
