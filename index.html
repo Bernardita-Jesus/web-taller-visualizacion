@@ -40,7 +40,9 @@
      2) BARRA LATERAL  -> <aside id="symbolLegend">
         - ancho: 236px fijo (ancho útil interno 196px = 236 - 40 de padding)
         - alto: 100vh - alto del header
-        - padding 14px 20px, border-right 1px
+        - padding 14px 20px; línea divisoria a la derecha dibujada como
+          .layout::after (8px separada del borde de la barra) en vez de
+          border-right, para poder correrla sin tocar el ancho de la barra
         - se parte en DOS mitades de igual alto (flex:1 1 0 cada una):
 
         2a) CUADRADO "CÓMO LEER LAS RAMAS" + SIMBOLOGÍAS  -> .symbol-group
@@ -128,6 +130,10 @@
     letter-spacing:0.2px;
   }
   #renderBtn:hover{ background:#443c31; }
+  body.square-mode #renderBtn{
+    align-self:flex-start;
+    width:80%;
+  }
   .mode-row{
     display:flex;
     gap:6px;
@@ -157,12 +163,25 @@
     min-height:0;
     display:flex;
     overflow:hidden;
+    position:relative;
+  }
+  /* línea divisoria junto a la simbología (barra lateral), separada del
+     border-right para poder correrla un poco a la derecha sin tocar el
+     ancho de #symbolLegend ni las dimensiones de la diagramación */
+  .layout::after{
+    content:"";
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:285px;
+    width:1px;
+    background:var(--border);
+    pointer-events:none;
   }
   /* === 2) BARRA LATERAL (contiene los cuadrados 2a y 2b) === */
   #symbolLegend{
     width:236px;
     flex-shrink:0;
-    border-right:1px solid var(--border);
     padding:14px 20px;
     overflow:hidden;
     display:flex;
@@ -224,17 +243,17 @@
   .symbol-row p strong{
     color:var(--text);
   }
-  /* texto de simbología: versión "rect" (por defecto) vs versión "cuadrada"
-     (con título de fila), alternadas según body.square-mode -- ver pedido
-     del usuario de corregir la redacción SOLO en el formato cuadrado. */
-  .row-square{ display:none; }
-  body.square-mode .row-rect{ display:none; }
-  body.square-mode .row-square{ display:block; }
   .row-title{
     margin:0 0 3px;
     font-size:11.5px;
     font-weight:600;
     color:var(--text);
+  }
+  /* fila "Estímulo sensorial": evita que "Segmentada: con estímulo." se
+     corte en dos líneas, sin achicar el ícono (se mantiene alineado a la
+     izquierda igual que las demás filas de simbología) */
+  .row-estimulo p{
+    white-space:nowrap;
   }
   /* === 2b) CUADRADO "COLOR SEGÚN EL DÍA" ===
      mitad inferior de la barra, mismo ancho y alto que 2a.
@@ -406,7 +425,6 @@
     flex:1 1 0;
     min-height:0;
     padding:0;
-    border-right:none;
   }
   .sq-canvas{
     flex:1;
@@ -445,25 +463,19 @@
         <line x1="30" y1="16" x2="6" y2="20" stroke="currentColor" stroke-width="2"/>
       </svg>
       <div class="symbol-text">
-        <p class="row-rect"><strong>Derecha</strong>: fue escrita.<br><strong>Izquierda</strong>: no fue escrita.</p>
-        <div class="row-square">
-          <p class="row-title">Presencia del registro</p>
-          <p><strong>Derecha</strong>: escrito.<br><strong>Izquierda</strong>: no escrito.</p>
-        </div>
+        <p class="row-title">Presencia del registro</p>
+        <p><strong>Derecha</strong>: escrito.<br><strong>Izquierda</strong>: no escrito.</p>
       </div>
     </div>
 
-    <div class="symbol-row">
+    <div class="symbol-row row-estimulo">
       <svg viewBox="0 0 60 30" width="52" height="26">
         <line x1="4" y1="8" x2="44" y2="8" stroke="currentColor" stroke-width="2" stroke-dasharray="6 5"/>
         <line x1="4" y1="22" x2="44" y2="22" stroke="currentColor" stroke-width="2"/>
       </svg>
       <div class="symbol-text">
-        <p class="row-rect"><strong>Segmentada</strong>: con estímulo sensorial.<br><strong>Continua</strong>: sin estímulo sensorial.</p>
-        <div class="row-square">
-          <p class="row-title">Estímulo sensorial</p>
-          <p><strong>Segmentada</strong>: con estímulo.<br><strong>Continua</strong>: sin estímulo.</p>
-        </div>
+        <p class="row-title">Estímulo sensorial</p>
+        <p><span id="rowEstimuloTarget"><strong>Segmentada</strong>: con estímulo.</span><br><strong>Continua</strong>: sin estímulo.</p>
       </div>
     </div>
 
@@ -473,11 +485,8 @@
         <path d="M4,22 Q14,16 24,22 T44,22" stroke="currentColor" fill="none" stroke-width="2"/>
       </svg>
       <div class="symbol-text">
-        <p class="row-rect"><strong>Lisa</strong>: sentimiento bueno.<br><strong>Ondulada</strong>: sentimiento malo.</p>
-        <div class="row-square">
-          <p class="row-title">Sentimiento evocado</p>
-          <p><strong>Lisa</strong>: alegre.<br><strong>Ondulada</strong>: melancólico.</p>
-        </div>
+        <p class="row-title">Sentimiento evocado</p>
+        <p><strong>Lisa</strong>: alegre.<br><strong>Ondulada</strong>: melancólico.</p>
       </div>
     </div>
 
@@ -487,11 +496,8 @@
         <line x1="4" y1="22" x2="54" y2="22" stroke="currentColor" stroke-width="3"/>
       </svg>
       <div class="symbol-text">
-        <p class="row-rect"><strong>Corta</strong>: magnitud normal.<br><strong>Larga</strong>: magnitud mayor.</p>
-        <div class="row-square">
-          <p class="row-title">Magnitud de la pulsión</p>
-          <p><strong>Corta</strong>: normal.<br><strong>Larga</strong>: mayor.</p>
-        </div>
+        <p class="row-title">Magnitud de la pulsión</p>
+        <p><strong>Corta</strong>: normal.<br><strong>Larga</strong>: mayor.</p>
       </div>
     </div>
     </div>
@@ -690,6 +696,23 @@ const canvasHolderEl = document.getElementById("canvas-holder");
 const sqLanding = document.getElementById("sqLanding");
 const sqLegend = document.getElementById("sqLegend");
 const sqCanvas = document.getElementById("sqCanvas");
+const dayGroupEl = document.querySelector(".day-group");
+const rowEstimuloTarget = document.getElementById("rowEstimuloTarget");
+const symbolHeadingEl = document.querySelector("#symbolLegend h2");
+
+// alinea el ancho de la línea divisoria y los botones de "Color según el día"
+// con el final de la frase "Segmentada: con estímulo." (solo en formato
+// cuadrado, pantalla viz) -- se mide en vivo porque el ancho del texto
+// depende de la fuente cargada.
+function syncDayGroupWidth(){
+  if(!document.body.classList.contains("square-viz")) return;
+  const legendRect = symbolLegendEl.getBoundingClientRect();
+  const textRect = rowEstimuloTarget.getBoundingClientRect();
+  const w = textRect.right - legendRect.left;
+  if(w > 0) dayGroupEl.style.width = w + "px";
+}
+window.addEventListener("resize", syncDayGroupWidth);
+if(document.fonts) document.fonts.ready.then(syncDayGroupWidth);
 
 function toSquareMode(){
   sqLanding.appendChild(titleEl);
@@ -704,6 +727,8 @@ function toSquareMode(){
 
 function toSquareViz(){
   document.body.classList.add("square-viz");
+  requestAnimationFrame(syncDayGroupWidth);
+  requestAnimationFrame(()=>{ if(window.recomputePlotLayout) window.recomputePlotLayout(); });
 }
 
 function toRectMode(){
@@ -715,11 +740,12 @@ function toRectMode(){
   layoutEl.appendChild(symbolLegendEl);
   layoutEl.appendChild(canvasHolderEl);
   document.body.classList.remove("square-mode", "square-viz");
+  dayGroupEl.style.width = "";
 }
 
 new p5((p)=>{
   let holder;
-  let trunkXs, plotTop, plotBottom, plotLeft, plotRight;
+  let trunkXs, plotTop, plotBottom, plotLeft, plotRight, plotAreaLeft, plotAreaRight, weekLabelY;
   let paper;
   const WEEK_LABELS = ["Semana 1","Semana 2","Semana 3"];
   const TRUNK_BOTTOM_W = 15;
@@ -748,6 +774,10 @@ new p5((p)=>{
     if(window.ResizeObserver){
       new ResizeObserver(()=> fitToHolder()).observe(holder);
     }
+    // expuesto para que toSquareViz() pueda forzar el recálculo del plotTop
+    // (que en formato cuadrado depende de la posición del h2 "Cómo leer las
+    // ramas", medida en el DOM) apenas la pantalla de viz se hace visible.
+    window.recomputePlotLayout = ()=> fitToHolder(true);
 
     // el ícono del botón siempre muestra el formato AL QUE SE VA a cambiar:
     // un cuadrado cuando está en formato web (rectangular), y un rectángulo
@@ -792,15 +822,40 @@ new p5((p)=>{
   }
 
   function computeLayout(){
-    plotTop = 50;
     plotBottom = p.height - 70;
+    if(document.body.classList.contains("square-viz")){
+      const canvasRect = holder.getBoundingClientRect();
+      const headingRect = symbolHeadingEl.getBoundingClientRect();
+      const gridShiftDown = 20; // baja la grilla completa manteniendo la distancia entre líneas
+      plotTop = headingRect.top + headingRect.height / 2 - canvasRect.top - 44 + gridShiftDown;
+      plotBottom += gridShiftDown;
+      weekLabelY = p.height - 12;
+    } else {
+      plotTop = 50;
+      weekLabelY = plotBottom + 24;
+    }
     plotLeft = Math.max(96, p.width * 0.1);
     plotRight = p.width - Math.max(40, p.width * 0.06);
-    const usable = plotRight - plotLeft;
+
+    const isSquare = document.body.classList.contains("square-mode");
+    if(isSquare){
+      p.textFont("Inter");
+      p.textSize(11);
+      plotAreaLeft = plotLeft - 100;
+      plotAreaRight = (p.width - 6) - p.textWidth("00:00") - 8;
+    } else {
+      plotAreaLeft = plotLeft;
+      plotAreaRight = plotRight;
+    }
+
+    // los troncos se centran según plotAreaLeft/Right, que en formato cuadrado
+    // coinciden con el largo real de las líneas horarias (ver drawHourGrid),
+    // no con plotLeft/plotRight -- así los árboles quedan alineados a las líneas.
+    const usable = plotAreaRight - plotAreaLeft;
     trunkXs = [
-      plotLeft + usable * (1/6),
-      plotLeft + usable * (3/6),
-      plotLeft + usable * (5/6)
+      plotAreaLeft + usable * (1/6),
+      plotAreaLeft + usable * (3/6),
+      plotAreaLeft + usable * (5/6)
     ];
   }
 
@@ -829,9 +884,10 @@ new p5((p)=>{
   function trunkLabel(txt, tx){
     p.noStroke();
     p.fill(43, 38, 32, 210);
-    p.textAlign(p.CENTER, p.TOP);
+    const isSquare = document.body.classList.contains("square-mode");
+    p.textAlign(p.CENTER, isSquare ? p.CENTER : p.TOP);
     p.textSize(17);
-    p.text(txt, tx, plotBottom + 24);
+    p.text(txt, tx, weekLabelY);
   }
 
   function easeInOutQuad(t){
@@ -864,16 +920,19 @@ new p5((p)=>{
   function drawHourGrid(){
     p.textFont("Inter");
     p.textSize(11);
-    const labelX = 28;
+    const isSquare = document.body.classList.contains("square-mode");
+    const lineLeft = isSquare ? plotAreaLeft : plotLeft + 35;
+    const lineRight = isSquare ? plotAreaRight : plotRight + 20;
+    const labelX = isSquare ? p.width - 6 : lineLeft - p.textWidth("00:00") - 18;
     for(let h = HOUR_MIN; h <= HOUR_MAX; h++){
       const y = hourY(h);
       p.stroke(43, 38, 32, 30);
       p.strokeWeight(1);
-      p.line(plotLeft - 20, y, plotRight + 20, y);
+      p.line(lineLeft, y, lineRight, y);
 
       p.noStroke();
       p.fill(43, 38, 32, 190);
-      p.textAlign(p.LEFT, p.CENTER);
+      p.textAlign(isSquare ? p.RIGHT : p.LEFT, p.CENTER);
       p.text(String(h).padStart(2,"0") + ":00", labelX, y);
     }
   }
@@ -924,7 +983,7 @@ new p5((p)=>{
 
   // MONTHLY — a single trunk at double width; branches from weeks 1, 2 and 3 all sprout from it
   function drawMonthly(now){
-    const trunkX = (plotLeft + plotRight) / 2;
+    const trunkX = (plotAreaLeft + plotAreaRight) / 2;
     let progress = 0;
     if(renderState.started){
       const elapsed = now - renderState.monthStartTime;
@@ -975,8 +1034,23 @@ new p5((p)=>{
 
   function drawBranch(e, y, growFactor, swayPhase, groupSize, trunkX, trunkScale){
     const dir = e.escrita ? 1 : -1;
-    const sectionW = (plotRight - plotLeft) / 3;
-    const baseLen = Math.min(70, sectionW * 0.28);
+    const isSquare = document.body.classList.contains("square-mode");
+    const isMonthly = trunkScale === 2;
+    let baseLen;
+    if(isSquare && isMonthly){
+      // el mensual cuadrado tiene un solo tronco ocupando toda el área (no 3
+      // secciones como el semanal) -- se usa la MISMA proporción (0.28) que
+      // la visualización horizontal mensual, pero aplicada a ese ancho
+      // completo, así las ramas quedan más largas sin inventar una proporción nueva.
+      const sectionW = plotAreaRight - plotAreaLeft;
+      baseLen = Math.min(220, sectionW * 0.215);
+    } else if(isSquare){
+      const sectionW = (plotAreaRight - plotAreaLeft) / 3;
+      baseLen = Math.min(95, sectionW * 0.38);
+    } else {
+      const sectionW = (plotRight - plotLeft) / 3;
+      baseLen = Math.min(70, sectionW * 0.28);
+    }
     const fullLen = e.magnitud ? baseLen * 2 : baseLen;
     const len = fullLen * growFactor;
     const alpha = 235 * growFactor;
