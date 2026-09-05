@@ -190,6 +190,13 @@
     display:flex;
     flex-direction:column;
   }
+  /* el overflow:hidden de arriba cortaba la última letra de la fila
+     "Estímulo sensorial" (el texto nowrap llega justo al borde de la
+     barra); en formato horizontal no hace falta ese recorte, así que se
+     deja visible para que la letra no se pierda */
+  body:not(.square-mode) #symbolLegend{
+    overflow:visible;
+  }
   #symbolLegend h2{
     font-family:'Fraunces',serif;
     font-weight:600;
@@ -258,7 +265,10 @@
      los dibujos se vean bien, compensando con menos separación icono-texto
      para que el texto no se corte contra el borde de la barra lateral */
   body:not(.square-mode) .symbol-row svg{
-    width:44px;
+    width:42px;
+  }
+  body:not(.square-mode) .symbol-text{
+    margin-left:9px;
   }
   .symbol-row p{
     margin:0;
@@ -699,12 +709,16 @@ const modeWeeklyBtn = document.getElementById("modeWeekly");
 const modeMonthlyBtn = document.getElementById("modeMonthly");
 function setMode(mode){
   // en modo cuadrado, elegir semanal o mensual pasa de la pantalla de
-  // título/bajada a la pantalla de leyenda + árboles (aunque el modo
-  // elegido ya fuera el activo)
-  if(document.body.classList.contains("square-mode") && !document.body.classList.contains("square-viz")){
-    toSquareViz();
-  }
-  if(viewMode === mode) return;
+  // título/bajada a la pantalla de leyenda + árboles, aunque el modo
+  // elegido ya fuera el activo -- por eso "entrar a viz" cuenta como
+  // cambio para reiniciar el crecimiento, no solo el cambio de mode.
+  // (bug corregido: antes, si el mode no cambiaba, el "return" de abajo
+  // se saltaba el restart y el árbol aparecía ya completo -- sin animar
+  // -- al entrar a la pantalla cuadrada de visualización.)
+  const enteringSquareViz = document.body.classList.contains("square-mode") && !document.body.classList.contains("square-viz");
+  if(enteringSquareViz) toSquareViz();
+  const modeChanged = viewMode !== mode;
+  if(!modeChanged && !enteringSquareViz) return;
   viewMode = mode;
   modeWeeklyBtn.classList.toggle("active", mode === "semanal");
   modeMonthlyBtn.classList.toggle("active", mode === "mensual");
@@ -941,11 +955,22 @@ new p5((p)=>{
     return 1 - Math.pow(1 - t, 2);
   }
 
-  const BRANCH_GROW_MS = 1400; // how long each branch takes to extend once it sprouts
+  const BRANCH_GROW_MS = 1800; // how long each branch takes to extend once it sprouts
   const MONTH_DURATION = RENDER_DURATION * 1.3; // el tronco mensual tarda un poco más porque recibe las 3 semanas
 
   p.draw = ()=>{
-    p.image(paper, 0, 0);
+    // en formato horizontal la textura de papel arranca desde la línea
+    // divisoria (.layout::after, a 285px del borde izquierdo = 49px desde
+    // que empieza #canvas-holder), no desde el borde mismo del canvas —
+    // así deja de taparle a la barra lateral el texto que se sale un poco
+    // de su propio ancho (ver fila "Estímulo sensorial").
+    const isSquare = document.body.classList.contains("square-mode");
+    // esa franja (0 a 49) no la vuelve a pisar el papel, así que si algo se
+    // dibujó ahí en formato cuadrado (una rama hacia la izquierda puede
+    // llegar bastante más allá de esa línea) quedaba pegado para siempre en
+    // vez de borrarse en el siguiente frame -- se limpia explícitamente.
+    if(!isSquare) p.drawingContext.clearRect(0, 0, 49, p.height);
+    p.image(paper, isSquare ? 0 : 49, 0);
     drawHourGrid();
     const now = performance.now();
     if(viewMode === "mensual"){
@@ -960,9 +985,17 @@ new p5((p)=>{
     p.textFont("Inter");
     p.textSize(11);
     const isSquare = document.body.classList.contains("square-mode");
-    const lineLeft = isSquare ? plotAreaLeft : plotLeft + 35;
+    const lineLeft = isSquare ? plotAreaLeft : plotLeft + 10;
     const lineRight = isSquare ? plotAreaRight : plotRight + 20;
-    const labelX = isSquare ? p.width - 6 : lineLeft - p.textWidth("00:00") - 18;
+    // labelX ya no depende de lineLeft -- así se puede mover la línea sola
+    // sin arrastrar las horas (quedó fijo en la posición que tenía cuando
+    // lineLeft todavía era plotLeft+15: (plotLeft+15) - textWidth - 36).
+    // Con ventanas angostas, plotLeft se achica y ese valor podía terminar
+    // pisando la línea divisoria decorativa (a 49px del borde del canvas,
+    // ver p.image(paper,...) más abajo) -- como esa línea es un ::after de
+    // .layout, se pinta encima del canvas y partía los números al medio.
+    // Se deja un mínimo (49 + 10px de margen) para que nunca se crucen.
+    const labelX = isSquare ? p.width - 6 : Math.max(59, plotLeft - p.textWidth("00:00") - 21);
     for(let h = HOUR_MIN; h <= HOUR_MAX; h++){
       const y = hourY(h);
       p.stroke(43, 38, 32, 30);
@@ -1066,7 +1099,11 @@ new p5((p)=>{
     visible.forEach(v=>{
       if(!branchAppear.has(v.i)) branchAppear.set(v.i, now);
       const age = now - branchAppear.get(v.i);
-      const growFactor = easeOutCubic(p.constrain(age / BRANCH_GROW_MS, 0, 1));
+      // easeOutCubic crece muy rápido al principio (~66% del largo ya a los
+      // 420ms de 1400ms totales), lo que hacía ver la rama como si apareciera
+      // ya casi completa en vez de irse extendiendo; easeInOutQuad arranca
+      // despacio y se nota mejor el crecimiento.
+      const growFactor = easeInOutQuad(p.constrain(age / BRANCH_GROW_MS, 0, 1));
       drawBranch(v.e, v.y, growFactor, v.swayPhase, v.groupSize, v.trunkX, trunkScale);
     });
   }
