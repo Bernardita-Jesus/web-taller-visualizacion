@@ -339,6 +339,21 @@
     margin-top:44px;
     border-top:none; /* sin línea divisoria debajo de "Magnitud de la pulsión" */
   }
+  /* INTERCAMBIO en la pantalla viz cuadrada: "Color según el día" (con sus
+     botones) va ARRIBA y "Cómo leer las ramas" (simbología) va ABAJO. Se hace
+     con `order` (sin tocar el HTML). La grilla de horas se ancla al borde
+     superior de la columna (no al h2), así no se mueve -- ver computeLayout. */
+  body.square-mode #symbolLegend .day-group{
+    order:0;
+    margin-top:2px;
+  }
+  body.square-mode #symbolLegend .symbol-group{
+    order:1;
+    justify-content:flex-end; /* la simbología se pega al fondo de la columna */
+  }
+  body.square-mode #symbolLegend .symbol-rows{
+    flex:0 0 auto; /* que no crezca, para que el flex-end de arriba tenga efecto */
+  }
   #dayLegend{
     display:flex;
     flex-direction:column;
@@ -610,7 +625,7 @@
     gap:26px;
   }
   .sq-landing .mode-btn{ flex:0 0 auto; }
-  /* al terminar de escribir la bajada, el botón elegido se oscurece 3s
+  /* al terminar de escribir la bajada, el botón elegido se oscurece 2s
      (ver runEndAction) antes de abrir la visualización. Lleva .sq-landing
      para ganarle en especificidad al override claro de .mode-btn.active */
   body.square-mode .sq-landing .mode-btn.vp-picked{
@@ -711,7 +726,8 @@
   body.square-mode .sq-landing .intro strong{ font-size:17px; }
 
   body.square-mode #symbolLegend h2{ font-size:12px; }
-  body.square-mode #symbolLegend h3{ font-size:11px; margin-bottom:20px; }
+  /* mismo tamaño que el h2, y pegado a sus pastillas de días */
+  body.square-mode #symbolLegend h3{ font-size:12px; margin-bottom:6px; }
   body.square-mode .symbol-rows{ gap:15px; }
   body.square-mode .symbol-row{ gap:7px; }
   body.square-mode .symbol-row svg{ width:34px; }
@@ -723,6 +739,35 @@
   body.square-mode #dayLegend{ gap:4px; }
   body.square-mode #dayLegend .day-row{ padding:3px 5px; font-size:9.5px; gap:8px; }
   body.square-mode #dayLegend .day-row .dot{ width:8px; height:8px; }
+
+  /* PANTALLA VIZ: "Color según el día" + los 7 días como FRANJA HORIZONTAL de
+     ancho completo, arriba de la grilla. Fuera del flujo (absolute en .sq-viz)
+     para no mover el título, la pregunta ni la grilla; Lunes a la izquierda,
+     Domingo a la derecha, repartidos con space-between. */
+  body.square-viz .sq-viz{ position:relative; }
+  body.square-viz .day-group{
+    position:absolute;
+    left:0; right:0;
+    top:66px;
+    width:auto;
+    margin:0;
+    z-index:2;
+  }
+  body.square-viz .day-group h3{ margin:-14px 0 6px; } /* título un poco más arriba, sin mover las pastillas */
+  body.square-viz #dayLegend{
+    flex-direction:row;
+    flex-wrap:nowrap;
+    justify-content:space-between;
+    align-items:center;
+    gap:6px;
+    width:100%;
+  }
+  body.square-viz #dayLegend .day-row{
+    padding:5px 12px;
+    font-size:10px;
+    gap:7px;
+  }
+  body.square-viz #dayLegend .day-row .dot{ width:9px; height:9px; }
 
   body.square-mode .mode-btn{ padding:10px 22px; font-size:16px; }
   /* en la diapo cuadrada los dos botones se ven igual que "Visualización
@@ -847,7 +892,7 @@
     <button id="vpPause" type="button" disabled>Pausa</button>
     <button id="vpReset" type="button">Reiniciar</button>
     <label class="vp-field">Bajada
-      <input id="vpBajadaSec" type="number" min="0.5" max="120" step="0.5" value="4"> s
+      <input id="vpBajadaSec" type="number" min="0.5" max="120" step="0.5" value="9"> s
     </label>
     <label class="vp-field">Al terminar
       <select id="vpEndSelect">
@@ -856,7 +901,7 @@
         <option value="modeMonthly">Visualización mensual</option>
       </select>
     </label>
-    <span id="vpClock" class="vp-clock">0.0 / 4.0 s</span>
+    <span id="vpClock" class="vp-clock">0.0 / 9.0 s</span>
   </div>
   <div class="vp-track">
     <div class="vp-fill" id="vpFill"></div>
@@ -976,9 +1021,15 @@ const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Doming
 const DAY_COLORS = ["#F4C300","#7B2FBE","#F2622E","#2455B5","#E63946","#4C9F38","#E8558B"];
 const HOUR_MIN = 7, HOUR_MAX = 23;
 
-// day-color legend — click a day to filter the branches; click it again to clear the filter
-let selectedDay = null;
+// day-color legend — click days to filter the branches. Se pueden activar
+// VARIOS días a la vez: cada click alterna ese día en el conjunto. Con el
+// conjunto vacío se muestran todas las ramas.
+const selectedDays = new Set();
 const dayLegend = document.getElementById("dayLegend");
+// true si la rama de la pulsión `e` debe mostrarse según el filtro de días
+function dayVisible(e){
+  return selectedDays.size === 0 || selectedDays.has(e.day);
+}
 DAYS.forEach((d,i)=>{
   const row = document.createElement("div");
   row.className = "day-row";
@@ -989,9 +1040,10 @@ DAYS.forEach((d,i)=>{
   row.appendChild(dot);
   row.appendChild(document.createTextNode(d));
   row.addEventListener("click", ()=>{
-    selectedDay = (selectedDay === i) ? null : i;
+    if(selectedDays.has(i)) selectedDays.delete(i);
+    else selectedDays.add(i);
     document.querySelectorAll(".day-row").forEach(r=>{
-      r.classList.toggle("selected", Number(r.dataset.day) === selectedDay);
+      r.classList.toggle("selected", selectedDays.has(Number(r.dataset.day)));
     });
     branchAppear = new Map();
   });
@@ -1034,8 +1086,10 @@ function setMode(mode){
   modeWeeklyBtn.classList.toggle("active", mode === "semanal");
   modeMonthlyBtn.classList.toggle("active", mode === "mensual");
   branchAppear = new Map();
-  // si ya se estaba renderizando, reinicia el crecimiento en el nuevo modo
-  if(renderState.started) startRender();
+  // al entrar a la pantalla cuadrada de visualización, arranca solo el
+  // crecimiento de troncos y ramas (igual que "Renderizar crecimiento" en el
+  // formato web); si ya se estaba renderizando, lo reinicia en el nuevo modo
+  if(renderState.started || enteringSquareViz) startRender();
 }
 modeWeeklyBtn.addEventListener("click", ()=> setMode("semanal"));
 modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
@@ -1077,7 +1131,7 @@ modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
   const markersEl  = document.getElementById("vpMarkers");
 
   // al terminar de escribir la bajada: selecciona el botón elegido en "Al
-  // terminar", lo deja oscurecido 3 segundos y recién ahí lo abre (pasa a la
+  // terminar", lo deja oscurecido 2 segundos y recién ahí lo abre (pasa a la
   // visualización), como si el usuario lo hubiera seleccionado y confirmado
   function runEndAction(){
     const id = endSelect.value;
@@ -1088,7 +1142,7 @@ modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
     setTimeout(()=>{
       btn.classList.remove("vp-picked");
       btn.click();                         // se "abre" -> entra a la visualización
-    }, 3000);
+    }, 2000);
   }
 
   const bajadaDur = ()=> Math.max(0.1, parseFloat(secInput.value) || 0);
@@ -1207,16 +1261,12 @@ const dayGroupEl = document.querySelector(".day-group");
 const rowEstimuloTarget = document.getElementById("rowEstimuloTarget");
 const symbolHeadingEl = document.querySelector("#symbolLegend h2");
 
-// alinea el ancho de la línea divisoria y los botones de "Color según el día"
-// con el final de la frase "Segmentada: con estímulo." (solo en formato
-// cuadrado, pantalla viz) -- se mide en vivo porque el ancho del texto
-// depende de la fuente cargada.
+// la franja "Color según el día" ahora es horizontal y de ancho completo
+// (ver CSS body.square-viz .day-group / #dayLegend). Ya no se alinea con el
+// texto "Segmentada: con estímulo.", así que sólo se limpia cualquier ancho
+// inline que hubiera quedado seteado.
 function syncDayGroupWidth(){
-  if(!document.body.classList.contains("square-viz")) return;
-  const legendRect = symbolLegendEl.getBoundingClientRect();
-  const textRect = rowEstimuloTarget.getBoundingClientRect();
-  const w = textRect.right - legendRect.left;
-  if(w > 0) dayGroupEl.style.width = w + "px";
+  dayGroupEl.style.width = "";
 }
 window.addEventListener("resize", syncDayGroupWidth);
 if(document.fonts) document.fonts.ready.then(syncDayGroupWidth);
@@ -1348,13 +1398,16 @@ new p5((p)=>{
     plotBottom = p.height - 70;
     if(document.body.classList.contains("square-viz")){
       const canvasRect = holder.getBoundingClientRect();
-      const headingRect = symbolHeadingEl.getBoundingClientRect();
-      const gridShiftDown = 80; // baja la grilla completa manteniendo la distancia entre líneas
+      // anclada al BORDE SUPERIOR de la columna de leyenda (no al h2 "Cómo leer
+      // las ramas", que tras el intercambio de bloques queda abajo). El +23
+      // reproduce el offset que tenía el centro de ese h2 respecto al borde de
+      // la columna, así la grilla no se mueve.
+      const legendRect = symbolLegendEl.getBoundingClientRect();
+      const gridShiftDown = 94; // baja la grilla completa manteniendo la distancia entre líneas
       const rowSpacingTighten = 48; // sube plotBottom para juntar un poco las líneas de las horas (23:00 queda fijo)
-      // la franja de título + pregunta arriba deja el h2 "Cómo leer las ramas"
-      // casi pegado al borde superior; el Math.max evita que la primera línea
-      // (23:00) se meta debajo de esa franja / quede cortada arriba.
-      plotTop = Math.max(34, headingRect.top + headingRect.height / 2 - canvasRect.top - 44 + gridShiftDown);
+      // el Math.max evita que la primera línea (23:00) se meta debajo de la
+      // franja de título + pregunta / quede cortada arriba.
+      plotTop = Math.max(34, legendRect.top + 23 - canvasRect.top - 44 + gridShiftDown);
       plotBottom += gridShiftDown - rowSpacingTighten;
       weekLabelY = p.height - 8;
     } else {
@@ -1554,7 +1607,7 @@ new p5((p)=>{
     const visible = [];
     for(let i = 0; i < PULSIONES.length; i++){
       const e = PULSIONES[i];
-      if(selectedDay !== null && e.day !== selectedDay) continue;
+      if(!dayVisible(e)) continue;
       const weekIdx = (e.week || 1) - 1;
       if(weekProgress[weekIdx] <= 0) continue;
       const y = hourY(e.hour);
@@ -1581,7 +1634,7 @@ new p5((p)=>{
     const visible = [];
     for(let i = 0; i < PULSIONES.length; i++){
       const e = PULSIONES[i];
-      if(selectedDay !== null && e.day !== selectedDay) continue;
+      if(!dayVisible(e)) continue;
       if(progress <= 0) continue;
       const y = hourY(e.hour);
       if(y >= growY){
@@ -1639,9 +1692,12 @@ new p5((p)=>{
       const sectionW = (plotRight - plotLeft) / 3;
       baseLen = Math.min(70, sectionW * 0.28);
     }
-    // en formato cuadrado la rama corta (sin magnitud) se acorta un poco más
-    // para que se note mejor la diferencia con la larga (magnitud x2)
-    const fullLen = e.magnitud ? baseLen * 2 : baseLen * (isSquare ? 0.78 : 1);
+    // largo según magnitud, por vista:
+    //   larga (magnitud): x2 web · x1.8 cuadrado semanal · x1.28 cuadrado mensual
+    //   corta (sin magnitud): x1 web · x0.78 cuadrado semanal · x0.9 cuadrado mensual
+    const magFactor   = isSquare ? (isMonthly ? 1.28 : 1.8)  : 2;
+    const shortFactor = isSquare ? (isMonthly ? 0.9  : 0.78) : 1;
+    const fullLen = baseLen * (e.magnitud ? magFactor : shortFactor);
     const len = fullLen * growFactor;
     const alpha = 235 * growFactor;
     const upwardSlope = 0.32; // how steeply branches climb as they extend outward
