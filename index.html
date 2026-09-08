@@ -52,8 +52,8 @@
 
         2b) CUADRADO "COLOR SEGÚN EL DÍA"  -> .day-group
             - mitad inferior, mismo ancho y alto que 2a
-            - border-top 1px = línea divisoria, justo en el medio de la barra
-            - h3 a 14px de esa línea (padding-top:14px) + 20px hasta la lista
+            - sin línea divisoria (el border-top va en none en square-mode)
+            - h3 a 14px del bloque de arriba (padding-top:14px) + 20px hasta la lista
             - #dayLegend: 7 días uno debajo del otro, gap 6px
 
      3) DIAGRAMACIÓN  -> <div id="canvas-holder">  ***NO CAMBIAR DIMENSIONES***
@@ -132,9 +132,19 @@
     letter-spacing:0.2px;
   }
   #renderBtn:hover{ background:#443c31; }
-  body.square-mode #renderBtn{
-    align-self:flex-start;
-    width:80%;
+  /* modo cuadrado: el botón sale de la columna de leyenda y queda como
+     control flotante -- oculto en la pantalla landing, fijo abajo-izquierda
+     en la pantalla viz (ver toSquareMode/toSquareViz). */
+  body.square-mode #renderBtn{ display:none; }
+  body.square-viz #renderBtn{
+    display:inline-block;
+    position:fixed;
+    left:16px;
+    bottom:16px;
+    width:auto;
+    z-index:5;
+    padding:5px 14px;
+    font-size:11.5px;
   }
   .mode-row{
     display:flex;
@@ -240,9 +250,15 @@
     min-height:0;
     gap:13px;
   }
+  /* en formato cuadrado las filas van apegadas al h2 "Cómo leer las ramas"
+     (antes quedaban ancladas abajo, dejando un hueco grande bajo el título) */
   body.square-mode .symbol-rows{
-    justify-content:flex-end;
-    margin-bottom:-28px;
+    justify-content:flex-start;
+  }
+  /* baja las 4 filas de simbología respecto al h2 "Cómo leer las ramas"
+     (el h2 no se mueve) */
+  body.square-mode #symbolLegend h2{
+    margin-bottom:30px;
   }
   body:not(.square-mode) .symbol-rows{
     flex:0 0 auto;
@@ -314,10 +330,14 @@
   }
   body.square-mode .symbol-group{
     flex:1 1 auto;
+    /* baja el bloque completo (h2 + filas de simbología) desde el borde
+       superior de la columna de leyenda */
+    margin-top:2px;
   }
   body.square-mode .day-group{
     flex:0 0 auto;
     margin-top:44px;
+    border-top:none; /* sin línea divisoria debajo de "Magnitud de la pulsión" */
   }
   #dayLegend{
     display:flex;
@@ -399,6 +419,119 @@
     border-color:#2b2620;
   }
 
+  /* === PANEL DE VIDEO ===
+     Panel vertical fijo en la columna IZQUIERDA, fuera del cuadrado (nunca
+     encima: .square-stage reserva ese ancho con padding-left). Solo visible en
+     modo cuadrado. Secuenciador para grabar: comenzar / pausa / reiniciar +
+     selector "al terminar" + línea de tiempo con un marcador por paso.
+     Paso 1 = (re)escribir la bajada en N segundos. */
+  #videoPanel{
+    position:fixed;
+    left:16px;
+    top:62%;
+    transform:translateY(-50%);
+    width:236px;
+    max-height:calc(100vh - 32px);
+    overflow-y:auto;
+    z-index:60;
+    display:none;
+    flex-direction:column;
+    gap:14px;
+    padding:18px;
+    background:rgba(248,244,234,.97);
+    border:1px solid var(--border);
+    border-radius:16px;
+    box-shadow:0 6px 22px rgba(43,38,32,.10);
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:var(--text);
+  }
+  body.square-mode #videoPanel{ display:flex; }
+  /* panel vertical (columna izquierda, fuera del cuadrado): controles apilados */
+  #videoPanel .vp-controls{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:9px;
+  }
+  /* botones grandes, ancho completo del panel, todos en el mismo tono claro */
+  #videoPanel button{
+    font:inherit;
+    font-size:15px;
+    padding:14px 16px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:#fdfaf1;
+    color:var(--text);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  #videoPanel button:hover:not(:disabled){ background:#f1e9d5; }
+  #videoPanel button:disabled{ opacity:.4; cursor:default; }
+  #videoPanel #vpStart{ font-weight:600; } /* solo negrita, mismo claro que el resto */
+  #videoPanel .vp-field{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+    color:var(--muted);
+  }
+  #videoPanel .vp-field input,
+  #videoPanel .vp-field select{
+    font:inherit;
+    padding:6px 8px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#fff;
+    color:var(--text);
+    max-width:118px;
+  }
+  #videoPanel .vp-field input{ width:56px; }
+  #videoPanel .vp-clock{
+    color:var(--muted);
+    font-variant-numeric:tabular-nums;
+    text-align:center;
+  }
+  #videoPanel .vp-track{
+    position:relative;
+    height:6px;
+    border-radius:3px;
+    background:#e4dcc6;
+  }
+  #videoPanel .vp-fill{
+    position:absolute; left:0; top:0; bottom:0;
+    width:0;
+    border-radius:3px;
+    background:#2b2620;
+  }
+  #videoPanel .vp-head{
+    position:absolute; top:50%; left:0;
+    width:12px; height:12px;
+    margin:-6px 0 0 -6px;
+    border-radius:50%;
+    background:#2b2620;
+  }
+  #videoPanel .vp-markers{ position:relative; height:13px; }
+  #videoPanel .vp-marker{
+    position:absolute;
+    transform:translateX(-50%);
+    font-size:10px;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  #videoPanel .vp-marker::before{
+    content:"";
+    display:block;
+    width:1px; height:4px;
+    background:var(--border);
+    margin:0 auto 2px;
+  }
+  /* el primer y último marcador se alinean al borde para no cortarse */
+  #videoPanel .vp-marker:first-child{ transform:none; }
+  #videoPanel .vp-marker:first-child::before{ margin-left:0; }
+  #videoPanel .vp-marker:last-child{ transform:translateX(-100%); }
+  #videoPanel .vp-marker:last-child::before{ margin-right:0; }
+
   /* =====================================================================
      MODO CUADRADO (alternativa completa de página, activada por #formatBtn)
 
@@ -424,7 +557,12 @@
     align-items:center;
     justify-content:center;
   }
-  body.square-mode .square-stage{ display:flex; }
+  body.square-mode .square-stage{
+    display:flex;
+    /* reserva la columna izquierda para el panel de video (fijo), así el
+       cuadrado queda a su derecha y nunca por debajo/encima de él */
+    padding-left:246px;
+  }
 
   .square-box{
     position:relative;
@@ -434,6 +572,13 @@
     box-sizing:border-box;
     border:1px solid var(--border);
     border-radius:4px;
+  }
+  /* en modo cuadrado el lado se limita para que el cuadrado entre completo
+     a la derecha del panel de video; sigue siendo cuadrado (aspect-ratio) */
+  body.square-mode .square-box{
+    width:auto;
+    height:min(90vmin, calc(100vw - 286px));
+    aspect-ratio:1 / 1;
   }
 
   .sq-landing{
@@ -448,25 +593,90 @@
     height:100%;
   }
   body.square-viz .sq-landing{ display:none; }
+  .sq-landing{ position:relative; }
   .sq-landing .intro{ margin-top:24px; max-width:400px; text-wrap:balance; }
   .sq-landing .intro br{ display:none; }
   .sq-landing .intro strong{ margin-bottom:22px; }
-  .sq-landing .mode-row{ margin-top:60px; gap:26px; }
+  /* los botones van fuera del flujo: posición fija en la diapo, así NO se
+     mueven cuando el panel de video escribe/borra la bajada arriba. Solo
+     siguen siendo clickeables. */
+  .sq-landing .mode-row{
+    position:absolute;
+    left:50%;
+    top:68%;
+    transform:translateX(-50%);
+    margin-top:0;
+    justify-content:center;
+    gap:26px;
+  }
+  .sq-landing .mode-btn{ flex:0 0 auto; }
+  /* al terminar de escribir la bajada, el botón elegido se oscurece 3s
+     (ver runEndAction) antes de abrir la visualización. Lleva .sq-landing
+     para ganarle en especificidad al override claro de .mode-btn.active */
+  body.square-mode .sq-landing .mode-btn.vp-picked{
+    background:#2b2620;
+    color:#f2ecdd;
+    border-color:#2b2620;
+  }
 
   .sq-viz{
     display:none;
+    flex-direction:column;
     width:100%;
     height:100%;
-    gap:24px;
+    gap:12px;
   }
-  body.square-viz .sq-viz{ display:flex; }
+  /* gap entre la franja del título y el cuerpo: controla la altura a la que
+     queda "Cómo leer las ramas" + simbología sin mover la línea divisoria */
+  body.square-viz .sq-viz{ display:flex; gap:28px; }
+
+  /* franja de ancho completo arriba de la pantalla viz: título a la
+     izquierda, pregunta a la derecha (reemplaza al botón "Renderizar
+     crecimiento", que ahora flota -- ver body.square-viz #renderBtn) */
+  .sq-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:24px;
+    flex-shrink:0;
+    /* controla la altura de la franja: sube la línea divisoria bajo el título
+       y, con ella, "Cómo leer las ramas" + la simbología (y la grilla de
+       horas, atada a la posición de ese h2) */
+    padding-bottom:12px;
+    border-bottom:1px solid var(--border);
+  }
+  .sq-header .title{
+    font-size:26px;
+    line-height:1.05;
+    flex-shrink:0;
+  }
+  .sq-header .intro{
+    margin:0;
+    text-align:right;
+    align-self:center;
+    max-width:60%;
+  }
+  .sq-header .intro strong{
+    font-size:16px;
+    line-height:1.25;
+    margin-bottom:0;
+  }
+  .sq-header .intro .intro-desc{ display:none; }
+
+  .sq-body{
+    display:flex;
+    flex:1;
+    min-height:0;
+    width:100%;
+    gap:18px;
+  }
 
   .sq-legend{
-    width:220px;
+    width:185px;
     flex-shrink:0;
     display:flex;
     flex-direction:column;
-    gap:18px;
+    gap:12px;
     overflow:hidden;
   }
   .sq-legend #symbolLegend{
@@ -481,6 +691,48 @@
     min-height:0;
     display:flex;
   }
+  /* la pantalla viz cuadrada corre el canvas 56px hacia la izquierda (sobre el
+     gap y el borde de la leyenda) para ganar lugar donde dibujar las ramas
+     largas del árbol de la Semana 1 sin que se corten. El sketch p5 desplaza
+     su dibujo +SQ_X_PAD (mismo valor) para que árbol, líneas y números queden
+     en el mismo sitio; esa franja de 56px sobre la leyenda va transparente
+     (el papel arranca en SQ_X_PAD), así la leyenda se sigue viendo. */
+  body.square-viz #canvas-holder{
+    margin-left:-56px;
+    /* la franja de 56px queda montada sobre la leyenda; el canvas no recibe
+       clicks (no tiene interacción propia) para no bloquear los filtros por día */
+    pointer-events:none;
+  }
+
+  /* ---- formato cuadrado: textos, íconos y botones un poco más chicos que
+     en el formato web (solo afecta a body.square-mode / body.square-viz) ---- */
+  body.square-mode .sq-landing .title{ font-size:42px; }
+  body.square-mode .sq-landing .intro{ font-size:11.5px; }
+  body.square-mode .sq-landing .intro strong{ font-size:17px; }
+
+  body.square-mode #symbolLegend h2{ font-size:12px; }
+  body.square-mode #symbolLegend h3{ font-size:11px; margin-bottom:20px; }
+  body.square-mode .symbol-rows{ gap:15px; }
+  body.square-mode .symbol-row{ gap:7px; }
+  body.square-mode .symbol-row svg{ width:34px; }
+  body.square-mode .symbol-row p{ font-size:10px; line-height:1.35; }
+  /* el subtítulo (ej. "Presencia del registro") sube un poco (margin-top
+     negativo) y se separa de sus dos opciones (margin-bottom mayor al de base) */
+  body.square-mode .row-title{ font-size:10px; margin:-3px 0 7px; }
+
+  body.square-mode #dayLegend{ gap:4px; }
+  body.square-mode #dayLegend .day-row{ padding:3px 5px; font-size:9.5px; gap:8px; }
+  body.square-mode #dayLegend .day-row .dot{ width:8px; height:8px; }
+
+  body.square-mode .mode-btn{ padding:10px 22px; font-size:16px; }
+  /* en la diapo cuadrada los dos botones se ven igual que "Visualización
+     mensual" (claro): sin el estado activo oscuro */
+  body.square-mode .mode-btn.active{
+    background:transparent;
+    color:var(--muted);
+    border-color:var(--border);
+  }
+  body.square-mode #formatBtn{ width:30px; height:30px; }
 </style>
 </head>
 <body>
@@ -488,7 +740,7 @@
 <!-- 1) CUADRADO HORIZONTAL: título + bajada + controles (ver MAPA DE LA PÁGINA en <style>) -->
 <header>
   <h1 class="title"><span>Sublimación</span><span>poética</span></h1>
-  <p class="intro"><strong>¿Cuándo aparece el impulso por escribir un poema?</strong> Este proyecto nace de la inquietud por registrar aquello que ocurre antes de escribir; como<br>el momento, el lugar, los estímulos sensoriales y los estados emocionales que acompañan ese impulso.</p>
+  <p class="intro"><strong>¿Qué despierta en mí el impulso por escribir?</strong> <span class="intro-desc">Este proyecto nace de la inquietud por registrar aquello que ocurre antes de escribir; como<br>el momento, el lugar, los estímulos sensoriales y los estados emocionales que acompañan ese impulso.</span></p>
   <div class="controls">
     <button id="renderBtn">Renderizar crecimiento</button>
     <div class="mode-row">
@@ -569,8 +821,11 @@
   <div class="square-box">
     <div class="sq-landing" id="sqLanding"></div>
     <div class="sq-viz" id="sqViz">
-      <div class="sq-legend" id="sqLegend"></div>
-      <div class="sq-canvas" id="sqCanvas"></div>
+      <div class="sq-header" id="sqHeader"></div>
+      <div class="sq-body">
+        <div class="sq-legend" id="sqLegend"></div>
+        <div class="sq-canvas" id="sqCanvas"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -582,6 +837,33 @@
 <button id="formatBtn" title="Cambiar a formato cuadrado" aria-label="Cambiar a formato cuadrado">
   <svg width="17" height="17" viewBox="0 0 17 17"><rect x="2" y="2" width="13" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
 </button>
+
+<!-- PANEL DE VIDEO: secuenciador externo (fuera del cuadrado) para grabar.
+     Solo visible en modo cuadrado. Paso 1: (re)escribe la bajada debajo de la
+     pregunta en los segundos indicados. Ver JS "PANEL DE VIDEO". -->
+<div id="videoPanel">
+  <div class="vp-controls">
+    <button id="vpStart" type="button">Comenzar video</button>
+    <button id="vpPause" type="button" disabled>Pausa</button>
+    <button id="vpReset" type="button">Reiniciar</button>
+    <label class="vp-field">Bajada
+      <input id="vpBajadaSec" type="number" min="0.5" max="120" step="0.5" value="4"> s
+    </label>
+    <label class="vp-field">Al terminar
+      <select id="vpEndSelect">
+        <option value="">— nada —</option>
+        <option value="modeWeekly">Visualización semanal</option>
+        <option value="modeMonthly">Visualización mensual</option>
+      </select>
+    </label>
+    <span id="vpClock" class="vp-clock">0.0 / 4.0 s</span>
+  </div>
+  <div class="vp-track">
+    <div class="vp-fill" id="vpFill"></div>
+    <div class="vp-head" id="vpHead"></div>
+  </div>
+  <div class="vp-markers" id="vpMarkers"></div>
+</div>
 
 <script>
 /* ---------------------------------------------------------------
@@ -659,6 +941,35 @@ const PULSIONES = [
   // Domingo 30
   { week: 2, day: 6, hour: 11, escrita: false, estimulo: false, magnitud: true,  sentimiento: 0 },
   { week: 2, day: 6, hour: 20, escrita: false, estimulo: false, magnitud: false, sentimiento: 0 },
+
+  // Semana 3
+  // Lunes 31
+  { week: 3, day: 0, hour: 8,  escrita: false, estimulo: false, magnitud: true,  sentimiento: 0 },
+  { week: 3, day: 0, hour: 15, escrita: false, estimulo: true,  magnitud: true,  sentimiento: 1 },
+  { week: 3, day: 0, hour: 20, escrita: true,  estimulo: false, magnitud: true,  sentimiento: 1 },
+  { week: 3, day: 0, hour: 22, escrita: true,  estimulo: true,  magnitud: true,  sentimiento: 1 },
+  // Martes 1
+  { week: 3, day: 1, hour: 10, escrita: false, estimulo: false, magnitud: false, sentimiento: 0 },
+  // Miércoles 2
+  { week: 3, day: 2, hour: 8,  escrita: true,  estimulo: false, magnitud: true,  sentimiento: 0 },
+  { week: 3, day: 2, hour: 11, escrita: true,  estimulo: true,  magnitud: true,  sentimiento: 1 },
+  { week: 3, day: 2, hour: 19, escrita: true,  estimulo: true,  magnitud: false, sentimiento: 1 },
+  { week: 3, day: 2, hour: 22, escrita: false, estimulo: true,  magnitud: false, sentimiento: 0 },
+  // Jueves 3
+  { week: 3, day: 3, hour: 7,  escrita: false, estimulo: false, magnitud: true,  sentimiento: 1 },
+  { week: 3, day: 3, hour: 12, escrita: false, estimulo: true,  magnitud: false, sentimiento: 1 },
+  { week: 3, day: 3, hour: 18, escrita: false, estimulo: true,  magnitud: true,  sentimiento: 0 },
+  // Viernes 4
+  { week: 3, day: 4, hour: 8,  escrita: true,  estimulo: true,  magnitud: false, sentimiento: 0 },
+  { week: 3, day: 4, hour: 14, escrita: false, estimulo: true,  magnitud: false, sentimiento: 1 },
+  { week: 3, day: 4, hour: 21, escrita: true,  estimulo: false, magnitud: false, sentimiento: 0 },
+  // Sábado 5
+  { week: 3, day: 5, hour: 10, escrita: true,  estimulo: false, magnitud: false, sentimiento: 1 },
+  { week: 3, day: 5, hour: 18, escrita: false, estimulo: false, magnitud: false, sentimiento: 1 },
+  // Domingo 6
+  { week: 3, day: 6, hour: 9,  escrita: true,  estimulo: true,  magnitud: false, sentimiento: 1 },
+  { week: 3, day: 6, hour: 12, escrita: true,  estimulo: true,  magnitud: true,  sentimiento: 0 },
+  { week: 3, day: 6, hour: 23, escrita: true,  estimulo: true,  magnitud: false, sentimiento: 0 },
 ];
 
 const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -730,6 +1041,148 @@ modeWeeklyBtn.addEventListener("click", ()=> setMode("semanal"));
 modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
 
 /* ---------------------------------------------------------------
+   PANEL DE VIDEO — secuenciador externo (fuera del cuadrado) para grabar.
+   Cada paso tiene label + duración (s) + apply(progresoLocal 0..1). Hoy hay
+   un solo paso ("bajada"): reescribe la bajada debajo de la pregunta letra
+   por letra en los segundos del input. Para sumar pasos, agregar entradas a
+   VIDEO_STEPS (la línea de tiempo y el motor ya los recorren en orden).
+------------------------------------------------------------------ */
+(function(){
+  const descEl = document.querySelector(".intro-desc");
+  if(!descEl) return;
+
+  // texto completo de la bajada; el <br> del markup queda como salto de línea
+  const DESC_FULL = descEl.innerHTML
+    .replace(/<br\s*\/?>/gi, " [BR] ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/ ?\[BR\] ?/g, "\n");
+  descEl.style.whiteSpace = "pre-wrap";
+  descEl.textContent = DESC_FULL; // reposo: bajada visible completa
+
+  const setDescProgress = (p)=>{
+    const n = Math.round(DESC_FULL.length * Math.max(0, Math.min(1, p)));
+    descEl.textContent = DESC_FULL.slice(0, n);
+  };
+
+  const secInput   = document.getElementById("vpBajadaSec");
+  const startBtn   = document.getElementById("vpStart");
+  const pauseBtn   = document.getElementById("vpPause");
+  const resetBtn   = document.getElementById("vpReset");
+  const endSelect  = document.getElementById("vpEndSelect");
+  const fillEl     = document.getElementById("vpFill");
+  const headEl     = document.getElementById("vpHead");
+  const clockEl    = document.getElementById("vpClock");
+  const markersEl  = document.getElementById("vpMarkers");
+
+  // al terminar de escribir la bajada: selecciona el botón elegido en "Al
+  // terminar", lo deja oscurecido 3 segundos y recién ahí lo abre (pasa a la
+  // visualización), como si el usuario lo hubiera seleccionado y confirmado
+  function runEndAction(){
+    const id = endSelect.value;
+    if(!id) return;
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    btn.classList.add("vp-picked");        // se oscurece
+    setTimeout(()=>{
+      btn.classList.remove("vp-picked");
+      btn.click();                         // se "abre" -> entra a la visualización
+    }, 3000);
+  }
+
+  const bajadaDur = ()=> Math.max(0.1, parseFloat(secInput.value) || 0);
+  const VIDEO_STEPS = [
+    { id:"bajada", label:"Bajada", dur: bajadaDur, apply: setDescProgress }
+  ];
+  const totalDur = ()=> VIDEO_STEPS.reduce((s, st)=> s + st.dur(), 0);
+
+  function applyAt(elapsed){
+    let acc = 0;
+    for(const st of VIDEO_STEPS){
+      const d = st.dur();
+      const local = elapsed >= acc + d ? 1 : elapsed <= acc ? 0 : (elapsed - acc) / d;
+      st.apply(local);
+      acc += d;
+    }
+    renderTimeline(elapsed);
+  }
+
+  function renderMarkers(){
+    const total = totalDur();
+    let acc = 0;
+    markersEl.innerHTML = "";
+    VIDEO_STEPS.forEach((st)=>{
+      addMarker(total > 0 ? acc / total : 0, st.label);
+      acc += st.dur();
+    });
+    addMarker(1, "Fin");
+  }
+  function addMarker(frac, label){
+    const m = document.createElement("div");
+    m.className = "vp-marker";
+    m.style.left = (frac * 100) + "%";
+    m.textContent = label;
+    markersEl.appendChild(m);
+  }
+  function renderTimeline(elapsed){
+    const total = totalDur();
+    const frac = total > 0 ? Math.max(0, Math.min(1, elapsed / total)) : 0;
+    fillEl.style.width = (frac * 100) + "%";
+    headEl.style.left = (frac * 100) + "%";
+    clockEl.textContent = elapsed.toFixed(1) + " / " + total.toFixed(1) + " s";
+  }
+
+  let rafId = null, playing = false, elapsed = 0, lastT = 0;
+
+  function frame(now){
+    const dt = Math.max(0, (now - lastT) / 1000);
+    lastT = now;
+    elapsed = Math.max(0, Math.min(totalDur(), elapsed + dt));
+    applyAt(elapsed);
+    if(elapsed >= totalDur()){ playing = false; rafId = null; syncButtons(); runEndAction(); return; }
+    rafId = requestAnimationFrame(frame);
+  }
+  function play(fromZero){
+    if(fromZero) elapsed = 0;
+    if(playing || elapsed >= totalDur()) return;
+    playing = true;
+    lastT = performance.now();
+    syncButtons();
+    rafId = requestAnimationFrame(frame);
+  }
+  function pause(){
+    playing = false;
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    syncButtons();
+  }
+  function reset(){
+    pause();
+    elapsed = 0;
+    renderTimeline(0);
+    descEl.textContent = DESC_FULL; // vuelve al estado de reposo
+  }
+  function syncButtons(){
+    const paused = !playing && elapsed > 0 && elapsed < totalDur();
+    pauseBtn.disabled = !playing && !paused;
+    pauseBtn.textContent = paused ? "Seguir" : "Pausa";
+  }
+
+  startBtn.addEventListener("click", ()=> play(true));           // reescribe desde cero
+  pauseBtn.addEventListener("click", ()=> playing ? pause() : play(false));
+  resetBtn.addEventListener("click", reset);
+  secInput.addEventListener("input", ()=>{
+    renderMarkers();
+    if(!playing) renderTimeline(elapsed);
+  });
+
+  renderMarkers();
+  renderTimeline(0);
+  syncButtons();
+})();
+
+/* ---------------------------------------------------------------
    MODO CUADRADO — mueve los mismos elementos del header/barra lateral/
    diagramación entre sus contenedores rectangulares y los del cuadrado
    (#squareStage). No hay markup duplicado: appendChild reubica los nodos
@@ -747,6 +1200,7 @@ const renderBtnEl = document.getElementById("renderBtn");
 const symbolLegendEl = document.getElementById("symbolLegend");
 const canvasHolderEl = document.getElementById("canvas-holder");
 const sqLanding = document.getElementById("sqLanding");
+const sqHeader = document.getElementById("sqHeader");
 const sqLegend = document.getElementById("sqLegend");
 const sqCanvas = document.getElementById("sqCanvas");
 const dayGroupEl = document.querySelector(".day-group");
@@ -771,7 +1225,9 @@ function toSquareMode(){
   sqLanding.appendChild(titleEl);
   sqLanding.appendChild(introEl);
   sqLanding.appendChild(modeRowEl);
-  sqLegend.appendChild(renderBtnEl);
+  // el botón de render ya no vive en la columna de leyenda: se saca del
+  // flujo y queda flotando (position:fixed, ver CSS body.square-viz #renderBtn)
+  document.body.appendChild(renderBtnEl);
   sqLegend.appendChild(symbolLegendEl);
   sqCanvas.appendChild(canvasHolderEl);
   document.body.classList.add("square-mode");
@@ -780,6 +1236,11 @@ function toSquareMode(){
 
 function toSquareViz(){
   document.body.classList.add("square-viz");
+  // en la pantalla viz, el título y la pregunta van en una franja de ancho
+  // completo arriba de todo (título a la izquierda, pregunta a la derecha),
+  // en el lugar donde antes estaba el botón "Renderizar crecimiento"
+  sqHeader.appendChild(titleEl);
+  sqHeader.appendChild(introEl);
   requestAnimationFrame(syncDayGroupWidth);
   requestAnimationFrame(()=>{ if(window.recomputePlotLayout) window.recomputePlotLayout(); });
 }
@@ -803,6 +1264,15 @@ new p5((p)=>{
   const WEEK_LABELS = ["Semana 1","Semana 2","Semana 3"];
   const TRUNK_BOTTOM_W = 15;
   const TRUNK_TOP_W = 3;
+  const SQUARE_HOUR_TEXT = 8; // tamaño de los números de hora en formato cuadrado (11 en web)
+  // en la pantalla viz cuadrada el canvas se corre SQ_X_PAD px hacia la
+  // izquierda (ver CSS body.square-viz #canvas-holder margin-left), invadiendo
+  // el gap y el borde de la leyenda. Todas las x del dibujo cuadrado se
+  // desplazan +SQ_X_PAD para compensar ese corrimiento: el árbol, las líneas de
+  // hora y los números quedan exactamente donde estaban, y lo único que cambia
+  // es que aparece ese ancho extra de canvas a la izquierda para que las ramas
+  // largas del árbol de la Semana 1 no se corten contra el borde.
+  const SQ_X_PAD = 56;
 
   // el canvas siempre ocupa todo #canvas-holder; lo que cambia de tamaño
   // es #canvas-holder mismo, según esté en el layout rectangular o dentro
@@ -879,10 +1349,14 @@ new p5((p)=>{
     if(document.body.classList.contains("square-viz")){
       const canvasRect = holder.getBoundingClientRect();
       const headingRect = symbolHeadingEl.getBoundingClientRect();
-      const gridShiftDown = 20; // baja la grilla completa manteniendo la distancia entre líneas
-      plotTop = headingRect.top + headingRect.height / 2 - canvasRect.top - 44 + gridShiftDown;
-      plotBottom += gridShiftDown;
-      weekLabelY = p.height - 12;
+      const gridShiftDown = 80; // baja la grilla completa manteniendo la distancia entre líneas
+      const rowSpacingTighten = 48; // sube plotBottom para juntar un poco las líneas de las horas (23:00 queda fijo)
+      // la franja de título + pregunta arriba deja el h2 "Cómo leer las ramas"
+      // casi pegado al borde superior; el Math.max evita que la primera línea
+      // (23:00) se meta debajo de esa franja / quede cortada arriba.
+      plotTop = Math.max(34, headingRect.top + headingRect.height / 2 - canvasRect.top - 44 + gridShiftDown);
+      plotBottom += gridShiftDown - rowSpacingTighten;
+      weekLabelY = p.height - 8;
     } else {
       plotTop = 50;
       weekLabelY = plotBottom + 24;
@@ -893,9 +1367,13 @@ new p5((p)=>{
     const isSquare = document.body.classList.contains("square-mode");
     if(isSquare){
       p.textFont("Inter");
-      p.textSize(11);
-      plotAreaLeft = plotLeft - 100;
-      plotAreaRight = (p.width - 6) - p.textWidth("00:00") - 8;
+      p.textSize(SQUARE_HOUR_TEXT); // números de hora más chicos
+      // las líneas de las horas se estiran un poco más a la izquierda; el
+      // +SQ_X_PAD sólo compensa el corrimiento del canvas (no mueve la línea)
+      plotAreaLeft = plotLeft - 133 + SQ_X_PAD;
+      // en cuadrado la etiqueta es solo la hora ("07", no "07:00"); el -12 deja
+      // más aire entre el número y el final de la línea
+      plotAreaRight = (p.width - 2) - p.textWidth("00") - 12;
     } else {
       plotAreaLeft = plotLeft;
       plotAreaRight = plotRight;
@@ -905,25 +1383,52 @@ new p5((p)=>{
     // coinciden con el largo real de las líneas horarias (ver drawHourGrid),
     // no con plotLeft/plotRight -- así los árboles quedan alineados a las líneas.
     const usable = plotAreaRight - plotAreaLeft;
-    trunkXs = [
-      plotAreaLeft + usable * (1/6),
-      plotAreaLeft + usable * (3/6),
-      plotAreaLeft + usable * (5/6)
-    ];
+    if(isSquare){
+      // los tres troncos se reparten parejos y centrados en el ancho visible;
+      // la separación se abre lo máximo posible SIN que las ramas largas (magnitud)
+      // que salen a los costados se corten contra los bordes del canvas -- eso era
+      // lo que se veía antes como un "rectángulo" tapando las ramas del 1er árbol.
+      const magLen = Math.min(77, (usable / 3) * 0.315) * 2; // rama larga = baseLen x2
+      // el piso es SQ_X_PAD (no 0): el árbol de la Semana 1 nace a esa distancia
+      // del borde real del canvas, y el ancho extra que aporta SQ_X_PAD queda
+      // libre a su izquierda para que sus ramas largas no se corten
+      const leftEdge = Math.max(SQ_X_PAD, plotAreaLeft);
+      const rightEdge = (p.width - 2) - p.textWidth("00"); // antes de los números de hora
+      // el 3er árbol lo más a la derecha posible dejando pasar sus ramas largas;
+      // el 1ro con el mismo margen (8px) a la izquierda para que la punta de sus
+      // ramas largas no quede cortada contra el borde del canvas; el 2do
+      // exactamente en el medio entre el 1ro y el 3ro.
+      const rightX = rightEdge - (3 + magLen + 8);
+      const leftX = leftEdge + Math.max(40, 3 + magLen - 16);
+      trunkXs = [leftX, (leftX + rightX) / 2, rightX];
+    } else {
+      trunkXs = [
+        plotAreaLeft + usable * (1/6),
+        plotAreaLeft + usable * (3/6),
+        plotAreaLeft + usable * (5/6)
+      ];
+    }
   }
 
   function hourY(hour){
     return p.map(hour, HOUR_MIN, HOUR_MAX, plotBottom, plotTop);
   }
 
+  // en formato cuadrado los troncos (y el punto donde nacen las ramas) van un
+  // poco más finos que en el formato web
+  const SQUARE_TRUNK_SCALE = 0.72;
+  function trunkScaleFor(scale){
+    return (scale || 1) * (document.body.classList.contains("square-mode") ? SQUARE_TRUNK_SCALE : 1);
+  }
+
   function trunkHalfWidthAt(y, scale){
-    const s = scale || 1;
+    const s = trunkScaleFor(scale);
     return p.map(y, plotBottom, plotTop, (TRUNK_BOTTOM_W * s)/2, (TRUNK_TOP_W * s)/2);
   }
 
   function drawTrunk(tx, growY, scale){
-    const s = scale || 1;
-    const topHalfW = trunkHalfWidthAt(growY, s);
+    const s = trunkScaleFor(scale);
+    const topHalfW = trunkHalfWidthAt(growY, scale);
     p.noStroke();
     p.fill(43, 38, 32, 225);
     p.beginShape();
@@ -939,7 +1444,7 @@ new p5((p)=>{
     p.fill(43, 38, 32, 210);
     const isSquare = document.body.classList.contains("square-mode");
     p.textAlign(p.CENTER, isSquare ? p.CENTER : p.TOP);
-    p.textSize(17);
+    p.textSize(isSquare ? 12 : 17);
     p.text(txt, tx, weekLabelY);
   }
 
@@ -965,12 +1470,16 @@ new p5((p)=>{
     // así deja de taparle a la barra lateral el texto que se sale un poco
     // de su propio ancho (ver fila "Estímulo sensorial").
     const isSquare = document.body.classList.contains("square-mode");
-    // esa franja (0 a 49) no la vuelve a pisar el papel, así que si algo se
-    // dibujó ahí en formato cuadrado (una rama hacia la izquierda puede
-    // llegar bastante más allá de esa línea) quedaba pegado para siempre en
-    // vez de borrarse en el siguiente frame -- se limpia explícitamente.
-    if(!isSquare) p.drawingContext.clearRect(0, 0, 49, p.height);
-    p.image(paper, isSquare ? 0 : 49, 0);
+    // el papel no cubre toda la franja izquierda del canvas: en web arranca en
+    // 49 (línea divisoria) y en cuadrado en SQ_X_PAD (queda transparente sobre
+    // la leyenda). Esa franja hay que limpiarla explícitamente cada frame o lo
+    // que se dibuje ahí (líneas de hora, puntas de ramas, ghosts de layouts
+    // anteriores) se acumula hasta volverse negro.
+    p.drawingContext.clearRect(0, 0, isSquare ? SQ_X_PAD : 49, p.height);
+    // en cuadrado el papel arranca en SQ_X_PAD (no en 0): esa franja izquierda
+    // del canvas queda transparente y montada sobre la leyenda, así se ve la
+    // leyenda por debajo y sólo las puntas de las ramas largas la cruzan
+    p.image(paper, isSquare ? SQ_X_PAD : 49, 0);
     drawHourGrid();
     const now = performance.now();
     if(viewMode === "mensual"){
@@ -983,9 +1492,11 @@ new p5((p)=>{
   // hour gridlines + labels (every hour, shared by both view modes)
   function drawHourGrid(){
     p.textFont("Inter");
-    p.textSize(11);
     const isSquare = document.body.classList.contains("square-mode");
-    const lineLeft = isSquare ? plotAreaLeft : plotLeft + 10;
+    p.textSize(isSquare ? SQUARE_HOUR_TEXT : 11);
+    // en cuadrado la línea no entra en la franja transparente (0..SQ_X_PAD):
+    // se corta en el borde real del canvas para no dibujarse sobre la leyenda
+    const lineLeft = isSquare ? Math.max(plotAreaLeft, SQ_X_PAD) : plotLeft + 10;
     const lineRight = isSquare ? plotAreaRight : plotRight + 20;
     // labelX ya no depende de lineLeft -- así se puede mover la línea sola
     // sin arrastrar las horas (quedó fijo en la posición que tenía cuando
@@ -995,7 +1506,7 @@ new p5((p)=>{
     // ver p.image(paper,...) más abajo) -- como esa línea es un ::after de
     // .layout, se pinta encima del canvas y partía los números al medio.
     // Se deja un mínimo (49 + 10px de margen) para que nunca se crucen.
-    const labelX = isSquare ? p.width - 6 : Math.max(59, plotLeft - p.textWidth("00:00") - 21);
+    const labelX = isSquare ? p.width - 2 : Math.max(59, plotLeft - p.textWidth("00:00") - 21);
     for(let h = HOUR_MIN; h <= HOUR_MAX; h++){
       const y = hourY(h);
       p.stroke(43, 38, 32, 30);
@@ -1005,7 +1516,8 @@ new p5((p)=>{
       p.noStroke();
       p.fill(43, 38, 32, 190);
       p.textAlign(isSquare ? p.RIGHT : p.LEFT, p.CENTER);
-      p.text(String(h).padStart(2,"0") + ":00", labelX, y);
+      // en cuadrado solo la hora ("07"); en web la hora completa ("07:00")
+      p.text(String(h).padStart(2,"0") + (isSquare ? "" : ":00"), labelX, y);
     }
   }
 
@@ -1119,21 +1631,24 @@ new p5((p)=>{
       // la visualización horizontal mensual, pero aplicada a ese ancho
       // completo, así las ramas quedan más largas sin inventar una proporción nueva.
       const sectionW = plotAreaRight - plotAreaLeft;
-      baseLen = Math.min(220, sectionW * 0.215);
+      baseLen = Math.min(153, sectionW * 0.151);
     } else if(isSquare){
       const sectionW = (plotAreaRight - plotAreaLeft) / 3;
-      baseLen = Math.min(95, sectionW * 0.38);
+      baseLen = Math.min(65, sectionW * 0.268);
     } else {
       const sectionW = (plotRight - plotLeft) / 3;
       baseLen = Math.min(70, sectionW * 0.28);
     }
-    const fullLen = e.magnitud ? baseLen * 2 : baseLen;
+    // en formato cuadrado la rama corta (sin magnitud) se acorta un poco más
+    // para que se note mejor la diferencia con la larga (magnitud x2)
+    const fullLen = e.magnitud ? baseLen * 2 : baseLen * (isSquare ? 0.78 : 1);
     const len = fullLen * growFactor;
     const alpha = 235 * growFactor;
     const upwardSlope = 0.32; // how steeply branches climb as they extend outward
     const isWavy = e.sentimiento < 0.5; // malo -> ondulada, bueno -> lisa
-    const amp = isWavy ? 6 : 0;
-    const freq = 0.3;
+    // en formato cuadrado la ondulada es más suave pero con más repeticiones
+    const amp = isWavy ? (isSquare ? 5 : 6) : 0;
+    const freq = isSquare ? 0.5 : 0.3;
 
     // wind sway — branches sharing an origin point are spread across the sway
     // cycle (evenly out of phase), so their movement is what keeps them apart
@@ -1148,11 +1663,12 @@ new p5((p)=>{
     const col = p.color(DAY_COLORS[e.day]);
     col.setAlpha(alpha);
     p.stroke(col);
-    p.strokeWeight(2.4);
+    p.strokeWeight(isSquare ? 1.5 : 2.4); // línea más fina en formato cuadrado
     p.noFill();
-    p.drawingContext.setLineDash(e.estimulo ? [7, 6] : []);
+    // segmentación más fina (más trozos) en formato cuadrado
+    p.drawingContext.setLineDash(e.estimulo ? (isSquare ? [4, 4] : [7, 6]) : []);
 
-    const steps = Math.max(10, Math.round(len / 2));
+    const steps = Math.max(10, Math.round(len / (isSquare ? 1.5 : 2)));
     p.beginShape();
     for(let s = 0; s <= steps; s++){
       const t = (len / steps) * s;
@@ -1168,7 +1684,7 @@ new p5((p)=>{
     dot.setAlpha(235 * growFactor);
     p.noStroke();
     p.fill(dot);
-    p.circle(startX, y, 5);
+    p.circle(startX, y, isSquare ? 4 : 5);
   }
 
 }, "canvas-holder");
