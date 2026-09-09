@@ -142,9 +142,9 @@
     left:16px;
     bottom:16px;
     width:auto;
-    z-index:5;
-    padding:5px 14px;
-    font-size:11.5px;
+    z-index:60;
+    padding:12px 20px;
+    font-size:13.5px;
   }
   .mode-row{
     display:flex;
@@ -263,46 +263,53 @@
   body:not(.square-mode) .symbol-rows{
     flex:0 0 auto;
   }
+  /* cada fila: título arriba, y debajo las dos opciones, cada una como
+     [símbolo dibujado clickeable] + [su texto al lado] */
   .symbol-row{
     display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:6px;
+  }
+  .symbol-row .row-title{ margin:0 0 1px; }
+  .sym-opt-row{
+    display:flex;
     align-items:center;
-    gap:10px;
+    gap:9px;
   }
-  body:not(.square-mode) .symbol-row{
-    gap:8px;
-  }
-  .symbol-row svg{
+  /* "Presencia del registro": las dos opciones pegadas para que se vea un solo
+     tronco continuo (mismo x de la línea vertical en ambos svg) */
+  .symbol-row--joined{ gap:0; }
+  /* #symbolLegend en el selector para ganarle a "body.square-mode .row-title" */
+  /* margin-top negativo sube el título; el margin-bottom mayor compensa para
+     que los íconos NO se muevan, solo el texto "Presencia del registro" */
+  #symbolLegend .symbol-row--joined .row-title{ margin:-20px 0 11px; }
+  .symbol-row--joined .sym-opt-row svg{ display:block; }
+  .sym-opt-row svg{
     color:var(--text);
     flex-shrink:0;
-    width:48px;
+    width:56px;
     height:auto;
   }
-  /* en formato horizontal el ícono se agranda respecto al gap para que
-     los dibujos se vean bien, compensando con menos separación icono-texto
-     para que el texto no se corte contra el borde de la barra lateral */
-  body:not(.square-mode) .symbol-row svg{
-    width:42px;
-  }
-  body:not(.square-mode) .symbol-text{
-    margin-left:9px;
-  }
-  .symbol-row p{
+  body.square-mode .sym-opt-row svg{ width:52px; }
+  .sym-opt-row p{
     margin:0;
     font-size:11.5px;
-    line-height:1.4;
+    line-height:1.3;
     color:var(--muted);
   }
-  /* al correr el bloque de simbología 12px a la derecha (alineado con el
-     título del header) queda menos ancho para el texto de cada fila; se
-     evita que cualquiera de las frases se corte en dos líneas dejándolas
-     bordear el padding derecho de la barra en vez de achicar los íconos
-     (ver memoria: nunca achicar el ícono para arreglar el corte de texto) */
-  body:not(.square-mode) .symbol-row p{
-    white-space:nowrap;
-  }
-  .symbol-row p strong{
-    color:var(--text);
-  }
+  body.square-mode .sym-opt-row p{ font-size:10px; }
+  body:not(.square-mode) .sym-opt-row p{ white-space:nowrap; }
+  .sym-opt-row p strong{ color:var(--text); }
+  /* cada símbolo (el <svg> de la opción) es clickeable: filtra las ramas a esa
+     variable (ver JS "selectedVars"). El <rect> transparente es área de click
+     y resalte al elegirlo. */
+  .sym-hit{ cursor:pointer; }
+  .sym-hit rect{ transition:fill .12s ease; }
+  .sym-hit:hover rect{ fill:#e4dcc6; }
+  .sym-hit.on rect{ fill:#2b2620; }
+  .sym-hit.on line,
+  .sym-hit.on path{ stroke:#f2ecdd; }
   .row-title{
     margin:0 0 3px;
     font-size:11.5px;
@@ -349,7 +356,10 @@
   }
   body.square-mode #symbolLegend .symbol-group{
     order:1;
-    justify-content:flex-end; /* la simbología se pega al fondo de la columna */
+    justify-content:flex-start;
+    /* sube "Cómo leer las ramas" + simbología hacia arriba de la columna; el
+       margin-top deja pasar la franja horizontal de días (absolute) */
+    margin-top:56px;
   }
   body.square-mode #symbolLegend .symbol-rows{
     flex:0 0 auto; /* que no crezca, para que el flex-end de arriba tenga efecto */
@@ -434,17 +444,34 @@
     border-color:#2b2620;
   }
 
-  /* === PANEL DE VIDEO ===
-     Panel vertical fijo en la columna IZQUIERDA, fuera del cuadrado (nunca
-     encima: .square-stage reserva ese ancho con padding-left). Solo visible en
-     modo cuadrado. Secuenciador para grabar: comenzar / pausa / reiniciar +
-     selector "al terminar" + línea de tiempo con un marcador por paso.
-     Paso 1 = (re)escribir la bajada en N segundos. */
-  #videoPanel{
+  /* "Volver al inicio": fijo arriba a la derecha, fuera del cuadrado. Sólo
+     visible dentro de una visualización (pantalla viz del cuadrado). */
+  #homeBtn{
+    position:fixed;
+    top:16px;
+    right:16px;
+    z-index:60;
+    display:none;
+    padding:8px 16px;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    background:rgba(248,244,234,.97);
+    color:var(--text);
+    border:1px solid var(--border);
+    border-radius:13px;
+    box-shadow:0 4px 14px rgba(43,38,32,.10);
+    cursor:pointer;
+  }
+  #homeBtn:hover{ background:#f1e9d5; }
+  body.square-viz #homeBtn{ display:block; }
+
+  /* === PANELES DE CONTROL (columna izquierda, fuera del cuadrado) ===
+     .ctrl-panel es la caja compartida. #videoPanel: secuenciador para grabar
+     (escribe la bajada). #weekPanel: reproduce el mensual cuadrado semana por
+     semana, agregando ramas día por día (solo visible en mensual cuadrado). */
+  .ctrl-panel{
     position:fixed;
     left:16px;
-    top:62%;
-    transform:translateY(-50%);
     width:236px;
     max-height:calc(100vh - 32px);
     overflow-y:auto;
@@ -461,16 +488,22 @@
     font-size:12px;
     color:var(--text);
   }
-  body.square-mode #videoPanel{ display:flex; }
-  /* panel vertical (columna izquierda, fuera del cuadrado): controles apilados */
-  #videoPanel .vp-controls{
+  #videoPanel{ top:62%; transform:translateY(-50%); }
+  #weekPanel{ top:20px; }
+  /* el panel de video sólo en la pantalla de inicio del cuadrado (donde se ve
+     y se escribe la bajada); no en la pantalla de visualización */
+  body.square-mode:not(.square-viz) #videoPanel{ display:flex; }
+  /* #weekPanel solo en la pantalla viz del mensual cuadrado */
+  body.square-viz.square-monthly #weekPanel{ display:flex; }
+  /* controles apilados a ancho completo */
+  .ctrl-panel .vp-controls{
     display:flex;
     flex-direction:column;
     align-items:stretch;
     gap:9px;
   }
-  /* botones grandes, ancho completo del panel, todos en el mismo tono claro */
-  #videoPanel button{
+  /* botones grandes, ancho completo, todos en el mismo tono claro */
+  .ctrl-panel button{
     font:inherit;
     font-size:15px;
     padding:14px 16px;
@@ -481,18 +514,18 @@
     cursor:pointer;
     white-space:nowrap;
   }
-  #videoPanel button:hover:not(:disabled){ background:#f1e9d5; }
-  #videoPanel button:disabled{ opacity:.4; cursor:default; }
-  #videoPanel #vpStart{ font-weight:600; } /* solo negrita, mismo claro que el resto */
-  #videoPanel .vp-field{
+  .ctrl-panel button:hover:not(:disabled){ background:#f1e9d5; }
+  .ctrl-panel button:disabled{ opacity:.4; cursor:default; }
+  .ctrl-panel .vp-primary{ font-weight:600; } /* solo negrita, mismo claro que el resto */
+  .ctrl-panel .vp-field{
     display:flex;
     align-items:center;
     justify-content:space-between;
     gap:6px;
     color:var(--muted);
   }
-  #videoPanel .vp-field input,
-  #videoPanel .vp-field select{
+  .ctrl-panel .vp-field input,
+  .ctrl-panel .vp-field select{
     font:inherit;
     padding:6px 8px;
     border:1px solid var(--border);
@@ -501,40 +534,40 @@
     color:var(--text);
     max-width:118px;
   }
-  #videoPanel .vp-field input{ width:56px; }
-  #videoPanel .vp-clock{
+  .ctrl-panel .vp-field input{ width:56px; }
+  .ctrl-panel .vp-clock{
     color:var(--muted);
     font-variant-numeric:tabular-nums;
     text-align:center;
   }
-  #videoPanel .vp-track{
+  .ctrl-panel .vp-track{
     position:relative;
     height:6px;
     border-radius:3px;
     background:#e4dcc6;
   }
-  #videoPanel .vp-fill{
+  .ctrl-panel .vp-fill{
     position:absolute; left:0; top:0; bottom:0;
     width:0;
     border-radius:3px;
     background:#2b2620;
   }
-  #videoPanel .vp-head{
+  .ctrl-panel .vp-head{
     position:absolute; top:50%; left:0;
     width:12px; height:12px;
     margin:-6px 0 0 -6px;
     border-radius:50%;
     background:#2b2620;
   }
-  #videoPanel .vp-markers{ position:relative; height:13px; }
-  #videoPanel .vp-marker{
+  .ctrl-panel .vp-markers{ position:relative; height:13px; }
+  .ctrl-panel .vp-marker{
     position:absolute;
     transform:translateX(-50%);
     font-size:10px;
     color:var(--muted);
     white-space:nowrap;
   }
-  #videoPanel .vp-marker::before{
+  .ctrl-panel .vp-marker::before{
     content:"";
     display:block;
     width:1px; height:4px;
@@ -542,10 +575,10 @@
     margin:0 auto 2px;
   }
   /* el primer y último marcador se alinean al borde para no cortarse */
-  #videoPanel .vp-marker:first-child{ transform:none; }
-  #videoPanel .vp-marker:first-child::before{ margin-left:0; }
-  #videoPanel .vp-marker:last-child{ transform:translateX(-100%); }
-  #videoPanel .vp-marker:last-child::before{ margin-right:0; }
+  .ctrl-panel .vp-marker:first-child{ transform:none; }
+  .ctrl-panel .vp-marker:first-child::before{ margin-left:0; }
+  .ctrl-panel .vp-marker:last-child{ transform:translateX(-100%); }
+  .ctrl-panel .vp-marker:last-child::before{ margin-right:0; }
 
   /* =====================================================================
      MODO CUADRADO (alternativa completa de página, activada por #formatBtn)
@@ -657,7 +690,7 @@
     /* controla la altura de la franja: sube la línea divisoria bajo el título
        y, con ella, "Cómo leer las ramas" + la simbología (y la grilla de
        horas, atada a la posición de ese h2) */
-    padding-bottom:12px;
+    padding-bottom:9px;
     border-bottom:1px solid var(--border);
   }
   .sq-header .title{
@@ -705,6 +738,37 @@
     min-width:0;
     min-height:0;
     display:flex;
+    position:relative; /* ancla para #weekBtns */
+  }
+  /* botones "Semana 1/2/3" debajo del árbol -- solo en la viz del mensual
+     cuadrado. Se activan (.on) a medida que #weekPanel reproduce cada semana. */
+  #weekBtns{ display:none; }
+  body.square-viz.square-monthly #weekBtns{
+    display:flex;
+    position:absolute;
+    left:0; right:0;
+    bottom:-18px;
+    justify-content:center;
+    gap:10px;
+    z-index:3;
+    /* el desplazamiento fino para centrarlos bajo el tronco lo pone drawMonthly
+       como style.transform inline (depende del ancho del canvas en vivo) */
+  }
+  #weekBtns button{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    padding:6px 15px;
+    border:1px solid var(--border);
+    border-radius:13px;
+    background:rgba(248,244,234,.9);
+    color:var(--muted);
+    cursor:pointer;
+  }
+  #weekBtns button:hover{ background:#e9e0c9; }
+  #weekBtns button.on{
+    background:#2b2620;
+    color:#f2ecdd;
+    border-color:#2b2620;
   }
   /* la pantalla viz cuadrada corre el canvas 56px hacia la izquierda (sobre el
      gap y el borde de la leyenda) para ganar lugar donde dibujar las ramas
@@ -728,13 +792,11 @@
   body.square-mode #symbolLegend h2{ font-size:12px; }
   /* mismo tamaño que el h2, y pegado a sus pastillas de días */
   body.square-mode #symbolLegend h3{ font-size:12px; margin-bottom:6px; }
-  body.square-mode .symbol-rows{ gap:15px; }
-  body.square-mode .symbol-row{ gap:7px; }
-  body.square-mode .symbol-row svg{ width:34px; }
-  body.square-mode .symbol-row p{ font-size:10px; line-height:1.35; }
-  /* el subtítulo (ej. "Presencia del registro") sube un poco (margin-top
-     negativo) y se separa de sus dos opciones (margin-bottom mayor al de base) */
-  body.square-mode .row-title{ font-size:10px; margin:-3px 0 7px; }
+  body.square-mode .symbol-rows{ gap:16px; }
+  body.square-mode .symbol-row{ gap:2px; } /* menos espacio entre las 2 opciones de cada fila */
+  body.square-mode .symbol-row--joined{ gap:0; }
+  body.square-mode .sym-opt-row{ gap:8px; }
+  body.square-mode .row-title{ font-size:10.5px; margin:0 0 3px; }
 
   body.square-mode #dayLegend{ gap:4px; }
   body.square-mode #dayLegend .day-row{ padding:3px 5px; font-size:9.5px; gap:8px; }
@@ -753,7 +815,9 @@
     margin:0;
     z-index:2;
   }
-  body.square-viz .day-group h3{ margin:-14px 0 6px; } /* título un poco más arriba, sin mover las pastillas */
+  /* el #symbolLegend en el selector es para ganarle en especificidad a
+     "#symbolLegend h3 { margin:0 0 20px }" (que tiene un id y fijaba margin-top:0) */
+  body.square-viz #symbolLegend .day-group h3{ margin:-8px 0 13px; } /* posición del título; el margin-bottom baja las pastillas */
   body.square-viz #dayLegend{
     flex-direction:row;
     flex-wrap:nowrap;
@@ -770,6 +834,8 @@
   body.square-viz #dayLegend .day-row .dot{ width:9px; height:9px; }
 
   body.square-mode .mode-btn{ padding:10px 22px; font-size:16px; }
+  /* en el cuadrado sólo se ofrece "Visualización mensual" */
+  body.square-mode #modeWeekly{ display:none; }
   /* en la diapo cuadrada los dos botones se ven igual que "Visualización
      mensual" (claro): sin el estado activo oscuro */
   body.square-mode .mode-btn.active{
@@ -802,48 +868,78 @@
     <div class="symbol-group">
     <h2>Cómo leer las ramas</h2>
     <div class="symbol-rows">
-    <div class="symbol-row">
-      <svg viewBox="0 0 60 24" width="52" height="22">
-        <line x1="30" y1="2" x2="30" y2="22" stroke="currentColor" stroke-width="3"/>
-        <line x1="30" y1="8" x2="54" y2="4" stroke="currentColor" stroke-width="2"/>
-        <line x1="30" y1="16" x2="6" y2="20" stroke="currentColor" stroke-width="2"/>
-      </svg>
-      <div class="symbol-text">
-        <p class="row-title">Presencia del registro</p>
-        <p><strong>Derecha</strong>: escrito.<br><strong>Izquierda</strong>: no escrito.</p>
+    <div class="symbol-row symbol-row--joined">
+      <p class="row-title">Presencia del registro</p>
+      <!-- las dos opciones comparten el mismo tronco (misma x, svgs pegados) -->
+      <div class="sym-opt-row">
+        <svg class="sym-hit" data-var="escrita:1" viewBox="0 0 48 20">
+          <rect x="0" y="0" width="48" height="20" rx="4" fill="transparent"/>
+          <line x1="24" y1="0" x2="24" y2="20" stroke="currentColor" stroke-width="3"/>
+          <line x1="24" y1="9" x2="46" y2="3" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <p><strong>Derecha</strong>: escrito.</p>
+      </div>
+      <div class="sym-opt-row">
+        <svg class="sym-hit" data-var="escrita:0" viewBox="0 0 48 20">
+          <rect x="0" y="0" width="48" height="20" rx="4" fill="transparent"/>
+          <line x1="24" y1="0" x2="24" y2="20" stroke="currentColor" stroke-width="3"/>
+          <line x1="24" y1="11" x2="2" y2="17" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <p><strong>Izquierda</strong>: no escrito.</p>
       </div>
     </div>
 
     <div class="symbol-row">
-      <svg viewBox="0 0 60 30" width="52" height="26">
-        <line x1="4" y1="8" x2="44" y2="8" stroke="currentColor" stroke-width="2" stroke-dasharray="6 5"/>
-        <line x1="4" y1="22" x2="44" y2="22" stroke="currentColor" stroke-width="2"/>
-      </svg>
-      <div class="symbol-text">
-        <p class="row-title">Estímulo sensorial</p>
-        <p><span id="rowEstimuloTarget"><strong>Segmentada</strong>: con estímulo.</span><br><strong>Continua</strong>: sin estímulo.</p>
+      <p class="row-title">Estímulo sensorial</p>
+      <div class="sym-opt-row">
+        <svg class="sym-hit" data-var="estimulo:1" viewBox="0 0 44 18">
+          <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
+          <line x1="4" y1="9" x2="40" y2="9" stroke="currentColor" stroke-width="2" stroke-dasharray="6 5"/>
+        </svg>
+        <p><span id="rowEstimuloTarget"><strong>Segmentada</strong>: con estímulo.</span></p>
+      </div>
+      <div class="sym-opt-row">
+        <svg class="sym-hit" data-var="estimulo:0" viewBox="0 0 44 18">
+          <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
+          <line x1="4" y1="9" x2="40" y2="9" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <p><strong>Continua</strong>: sin estímulo.</p>
       </div>
     </div>
 
     <div class="symbol-row">
-      <svg viewBox="0 0 60 30" width="52" height="26">
-        <line x1="4" y1="8" x2="44" y2="8" stroke="currentColor" stroke-width="2"/>
-        <path d="M4,22 Q14,16 24,22 T44,22" stroke="currentColor" fill="none" stroke-width="2"/>
-      </svg>
-      <div class="symbol-text">
-        <p class="row-title">Sentimiento evocado</p>
-        <p><strong>Lisa</strong>: alegre.<br><strong>Ondulada</strong>: melancólico.</p>
+      <p class="row-title">Sentimiento evocado</p>
+      <div class="sym-opt-row">
+        <svg class="sym-hit" data-var="sentimiento:lisa" viewBox="0 0 44 18">
+          <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
+          <line x1="4" y1="9" x2="40" y2="9" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <p><strong>Lisa</strong>: alegre.</p>
+      </div>
+      <div class="sym-opt-row">
+        <svg class="sym-hit" data-var="sentimiento:ond" viewBox="0 0 44 18">
+          <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
+          <path d="M4,9 Q10,3 16,9 T28,9 T40,9" stroke="currentColor" fill="none" stroke-width="2"/>
+        </svg>
+        <p><strong>Ondulada</strong>: melancólico.</p>
       </div>
     </div>
 
     <div class="symbol-row">
-      <svg viewBox="0 0 60 30" width="52" height="26">
-        <line x1="4" y1="8" x2="24" y2="8" stroke="currentColor" stroke-width="3"/>
-        <line x1="4" y1="22" x2="54" y2="22" stroke="currentColor" stroke-width="3"/>
-      </svg>
-      <div class="symbol-text">
-        <p class="row-title">Magnitud de la pulsión</p>
-        <p><strong>Corta</strong>: normal.<br><strong>Larga</strong>: mayor.</p>
+      <p class="row-title">Magnitud de la pulsión</p>
+      <div class="sym-opt-row">
+        <svg class="sym-hit" data-var="magnitud:0" viewBox="0 0 44 18">
+          <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
+          <line x1="13" y1="9" x2="31" y2="9" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <p><strong>Corta</strong>: normal.</p>
+      </div>
+      <div class="sym-opt-row">
+        <svg class="sym-hit" data-var="magnitud:1" viewBox="0 0 44 18">
+          <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
+          <line x1="4" y1="9" x2="40" y2="9" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <p><strong>Larga</strong>: mayor.</p>
       </div>
     </div>
     </div>
@@ -869,7 +965,16 @@
       <div class="sq-header" id="sqHeader"></div>
       <div class="sq-body">
         <div class="sq-legend" id="sqLegend"></div>
-        <div class="sq-canvas" id="sqCanvas"></div>
+        <div class="sq-canvas" id="sqCanvas">
+          <!-- botones de semana, debajo del árbol (solo mensual cuadrado). Se
+               activan solos a medida que el panel #weekPanel reproduce cada
+               semana; también se puede clickear para saltar a esa semana. -->
+          <div id="weekBtns">
+            <button type="button" data-week="0">Semana 1</button>
+            <button type="button" data-week="1">Semana 2</button>
+            <button type="button" data-week="2">Semana 3</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -883,12 +988,16 @@
   <svg width="17" height="17" viewBox="0 0 17 17"><rect x="2" y="2" width="13" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
 </button>
 
+<!-- volver a la pantalla de inicio del cuadrado (fijo arriba a la derecha,
+     fuera del cuadrado). Sólo aparece cuando ya se entró a una visualización. -->
+<button id="homeBtn" type="button" title="Volver al inicio" aria-label="Volver al inicio">↩ Inicio</button>
+
 <!-- PANEL DE VIDEO: secuenciador externo (fuera del cuadrado) para grabar.
      Solo visible en modo cuadrado. Paso 1: (re)escribe la bajada debajo de la
      pregunta en los segundos indicados. Ver JS "PANEL DE VIDEO". -->
-<div id="videoPanel">
+<div id="videoPanel" class="ctrl-panel">
   <div class="vp-controls">
-    <button id="vpStart" type="button">Comenzar video</button>
+    <button id="vpStart" class="vp-primary" type="button">Comenzar video</button>
     <button id="vpPause" type="button" disabled>Pausa</button>
     <button id="vpReset" type="button">Reiniciar</button>
     <label class="vp-field">Bajada
@@ -897,7 +1006,6 @@
     <label class="vp-field">Al terminar
       <select id="vpEndSelect">
         <option value="">— nada —</option>
-        <option value="modeWeekly">Visualización semanal</option>
         <option value="modeMonthly">Visualización mensual</option>
       </select>
     </label>
@@ -908,6 +1016,26 @@
     <div class="vp-head" id="vpHead"></div>
   </div>
   <div class="vp-markers" id="vpMarkers"></div>
+</div>
+
+<!-- PANEL DE SEMANAS: solo en la pantalla viz del MENSUAL cuadrado. Reproduce
+     el árbol semana por semana, agregando las ramas día por día. Ver JS
+     "PANEL DE SEMANAS". -->
+<div id="weekPanel" class="ctrl-panel">
+  <div class="vp-controls">
+    <button id="wpStart" class="vp-primary" type="button">Reproducir semanas</button>
+    <button id="wpPause" type="button" disabled>Pausa</button>
+    <button id="wpReset" type="button">Reiniciar</button>
+    <label class="vp-field">seg/semana
+      <input id="wpSecWeek" type="number" min="1" max="120" step="0.5" value="6"> s
+    </label>
+    <span id="wpClock" class="vp-clock">0.0 / 18.0 s</span>
+  </div>
+  <div class="vp-track">
+    <div class="vp-fill" id="wpFill"></div>
+    <div class="vp-head" id="wpHead"></div>
+  </div>
+  <div class="vp-markers" id="wpMarkers"></div>
 </div>
 
 <script>
@@ -1021,6 +1149,30 @@ const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Doming
 const DAY_COLORS = ["#F4C300","#7B2FBE","#F2622E","#2455B5","#E63946","#4C9F38","#E8558B"];
 const HOUR_MIN = 7, HOUR_MAX = 23;
 
+// fase del vaivén de cada rama, PRECALCULADA sobre TODAS las pulsiones agrupadas
+// por origen (misma dirección + misma hora). Las ramas de un mismo grupo se
+// reparten por toda la vuelta del ciclo para que no se muevan juntas ni se
+// tapen. Es fijo por rama, no cambia al aparecer/desaparecer otras.
+function buildSway(keyOf){
+  const groups = new Map();
+  PULSIONES.forEach((e, i)=>{
+    const k = keyOf(e);
+    if(!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(i);
+  });
+  const phase = [];
+  groups.forEach(arr=>{
+    arr.forEach((i, idx)=>{
+      phase[i] = (idx / arr.length) * Math.PI * 2 + (i % 3) * 0.7;
+    });
+  });
+  return phase;
+}
+// mensual: un solo tronco -> agrupan por dirección + hora (cualquier semana)
+const SWAY_MONTHLY = buildSway(e => (e.escrita ? "R" : "L") + Math.round(e.hour * 4));
+// semanal: un tronco por semana -> además por semana
+const SWAY_WEEKLY  = buildSway(e => (e.week || 1) + (e.escrita ? "R" : "L") + Math.round(e.hour * 4));
+
 // day-color legend — click days to filter the branches. Se pueden activar
 // VARIOS días a la vez: cada click alterna ese día en el conjunto. Con el
 // conjunto vacío se muestran todas las ramas.
@@ -1048,6 +1200,53 @@ DAYS.forEach((d,i)=>{
     branchAppear = new Map();
   });
   dayLegend.appendChild(row);
+});
+
+// botones "Semana 1/2/3" (debajo del árbol, mensual cuadrado) como filtro
+// INDEPENDIENTE de la reproducción: cada click alterna esa semana. Con una o
+// más semanas elegidas, el árbol muestra sólo esas semanas COMPLETAS (vista
+// estática, sin la reproducción día por día). Con el conjunto vacío, manda la
+// reproducción (o el crecimiento normal). Ver drawMonthly.
+const selectedWeeks = new Set(); // valores 1..3
+function weekManual(){ return selectedWeeks.size > 0; }
+function weekVisible(e){ return !weekManual() || selectedWeeks.has(e.week || 1); }
+Array.from(document.querySelectorAll("#weekBtns button")).forEach((b)=>{
+  b.addEventListener("click", ()=>{
+    const w = (Number(b.dataset.week) || 0) + 1; // 1..3
+    if(selectedWeeks.has(w)) selectedWeeks.delete(w);
+    else selectedWeeks.add(w);
+    branchAppear = new Map();
+  });
+});
+
+// filtro por VARIABLES de la rama: se clickean las opciones de la simbología
+// ("Derecha: escrito", "Ondulada: melancólico", etc). Facetado: dentro de una
+// dimensión los valores elegidos se suman (OR); entre dimensiones se cruzan (AND).
+// Con nada elegido, no filtra.
+const selectedVars = new Set(); // ej "escrita:1", "sentimiento:ond"
+const VAR_DIMS = ["escrita", "estimulo", "sentimiento", "magnitud"];
+function varTokenOf(e, dim){
+  if(dim === "escrita")     return e.escrita ? "escrita:1" : "escrita:0";
+  if(dim === "estimulo")    return e.estimulo ? "estimulo:1" : "estimulo:0";
+  if(dim === "sentimiento") return e.sentimiento < 0.5 ? "sentimiento:ond" : "sentimiento:lisa";
+  return e.magnitud ? "magnitud:1" : "magnitud:0";
+}
+function varVisible(e){
+  for(const dim of VAR_DIMS){
+    let anySel = false;
+    for(const v of selectedVars){ if(v.indexOf(dim + ":") === 0){ anySel = true; break; } }
+    if(anySel && !selectedVars.has(varTokenOf(e, dim))) return false;
+  }
+  return true;
+}
+document.querySelectorAll(".sym-hit").forEach((el)=>{
+  el.addEventListener("click", ()=>{
+    const v = el.dataset.var;
+    if(selectedVars.has(v)) selectedVars.delete(v);
+    else selectedVars.add(v);
+    document.querySelectorAll(".sym-hit").forEach(o=> o.classList.toggle("on", selectedVars.has(o.dataset.var)));
+    branchAppear = new Map();
+  });
 });
 
 // growth animation state, shared between the buttons and the sketch
@@ -1085,14 +1284,33 @@ function setMode(mode){
   viewMode = mode;
   modeWeeklyBtn.classList.toggle("active", mode === "semanal");
   modeMonthlyBtn.classList.toggle("active", mode === "mensual");
+  // el panel de semanas sólo existe para el mensual cuadrado
+  document.body.classList.toggle("square-monthly", mode === "mensual");
+  if(window.weekPlay && window.weekPlay.reset) window.weekPlay.reset();
   branchAppear = new Map();
-  // al entrar a la pantalla cuadrada de visualización, arranca solo el
-  // crecimiento de troncos y ramas (igual que "Renderizar crecimiento" en el
-  // formato web); si ya se estaba renderizando, lo reinicia en el nuevo modo
-  if(renderState.started || enteringSquareViz) startRender();
+  // el árbol NO arranca a crecer solo al entrar a la visualización: se dispara
+  // a mano con "Renderizar crecimiento" (o con el panel de semanas). Si ya se
+  // estaba renderizando, se reinicia en el nuevo modo.
+  if(renderState.started) startRender();
 }
 modeWeeklyBtn.addEventListener("click", ()=> setMode("semanal"));
 modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
+
+// "Volver al inicio": vuelve a la pantalla de inicio del cuadrado y deja todo
+// en limpio (reproducción de semanas, filtros de día/semana, crecimiento).
+document.getElementById("homeBtn").addEventListener("click", ()=>{
+  if(window.weekPlay && window.weekPlay.reset) window.weekPlay.reset();
+  selectedDays.clear();
+  selectedWeeks.clear();
+  selectedVars.clear();
+  document.querySelectorAll(".day-row.selected").forEach(r=> r.classList.remove("selected"));
+  document.querySelectorAll(".sym-hit.on").forEach(o=> o.classList.remove("on"));
+  renderState.started = false;
+  branchAppear = new Map();
+  document.body.classList.remove("square-monthly");
+  toSquareMode();          // saca .square-viz y devuelve título/bajada al inicio
+  if(window.recomputePlotLayout) window.recomputePlotLayout();
+});
 
 /* ---------------------------------------------------------------
    PANEL DE VIDEO — secuenciador externo (fuera del cuadrado) para grabar.
@@ -1237,6 +1455,106 @@ modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
 })();
 
 /* ---------------------------------------------------------------
+   PANEL DE SEMANAS — reproduce el mensual cuadrado semana por semana,
+   agregando las ramas día por día (lunes, martes, ...). "Modo aparte": el
+   árbol mensual sigue como está hasta que se aprieta "Reproducir semanas".
+   El sketch (drawMonthly) lee window.weekPlay: si .active, pone el tronco
+   completo y muestra sólo las ramas cuya (semana, día) ya se reprodujo.
+   Los botones #weekBtns son un filtro APARTE (ver "selectedWeeks"): sin
+   semanas elegidas se van activando con la reproducción; con semanas elegidas
+   muestran sólo esas, completas. El estado .on lo maneja drawMonthly.
+   El tiempo se configura en seg/semana; cada día = ÷7.
+------------------------------------------------------------------ */
+window.weekPlay = { active:false, elapsed:0, secPerWeek:6 };
+(function(){
+  const startBtn  = document.getElementById("wpStart");
+  const pauseBtn  = document.getElementById("wpPause");
+  const resetBtn  = document.getElementById("wpReset");
+  const secInput  = document.getElementById("wpSecWeek");
+  const fillEl    = document.getElementById("wpFill");
+  const headEl    = document.getElementById("wpHead");
+  const clockEl   = document.getElementById("wpClock");
+  const markersEl = document.getElementById("wpMarkers");
+  const WP = window.weekPlay;
+
+  const secPerWeek = ()=> Math.max(0.5, parseFloat(secInput.value) || 0);
+  const totalDur   = ()=> secPerWeek() * 3; // 3 semanas
+
+  function renderMarkers(){
+    markersEl.innerHTML = "";
+    ["S1","S2","S3"].forEach((lbl, i)=> addMarker(i / 3, lbl));
+    addMarker(1, "Fin");
+  }
+  function addMarker(frac, label){
+    const m = document.createElement("div");
+    m.className = "vp-marker";
+    m.style.left = (frac * 100) + "%";
+    m.textContent = label;
+    markersEl.appendChild(m);
+  }
+  function renderTimeline(){
+    const total = totalDur();
+    const frac = total > 0 ? Math.max(0, Math.min(1, WP.elapsed / total)) : 0;
+    fillEl.style.width = (frac * 100) + "%";
+    headEl.style.left = (frac * 100) + "%";
+    clockEl.textContent = WP.elapsed.toFixed(1) + " / " + total.toFixed(1) + " s";
+  }
+
+  let rafId = null, playing = false, lastT = 0;
+
+  function frame(now){
+    const dt = Math.max(0, (now - lastT) / 1000);
+    lastT = now;
+    WP.secPerWeek = secPerWeek();
+    WP.elapsed = Math.max(0, Math.min(totalDur(), WP.elapsed + dt));
+    renderTimeline();
+    if(WP.elapsed >= totalDur()){ playing = false; rafId = null; syncButtons(); return; }
+    rafId = requestAnimationFrame(frame);
+  }
+  function play(fromZero){
+    if(fromZero){ WP.elapsed = 0; branchAppear = new Map(); }
+    if(playing || WP.elapsed >= totalDur()) return;
+    WP.active = true;
+    WP.secPerWeek = secPerWeek();
+    playing = true;
+    lastT = performance.now();
+    syncButtons();
+    rafId = requestAnimationFrame(frame);
+  }
+  function pause(){
+    playing = false;
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    syncButtons();
+  }
+  function reset(){
+    pause();
+    WP.active = false;
+    WP.elapsed = 0;
+    branchAppear = new Map();
+    renderTimeline();
+    syncButtons();
+  }
+  WP.reset = reset; // para que setMode / toRectMode lo puedan cortar
+  function syncButtons(){
+    const paused = !playing && WP.elapsed > 0 && WP.elapsed < totalDur();
+    pauseBtn.disabled = !playing && !paused;
+    pauseBtn.textContent = paused ? "Seguir" : "Pausa";
+  }
+
+  startBtn.addEventListener("click", ()=> play(true));
+  pauseBtn.addEventListener("click", ()=> playing ? pause() : play(false));
+  resetBtn.addEventListener("click", reset);
+  secInput.addEventListener("input", ()=>{ WP.secPerWeek = secPerWeek(); if(!playing) renderTimeline(); });
+  // (los clicks en #weekBtns son filtro de semana, INDEPENDIENTE de este panel
+  //  -- se manejan junto al filtro de días, ver "selectedWeeks")
+
+  renderMarkers();
+  renderTimeline();
+  syncButtons();
+})();
+
+/* ---------------------------------------------------------------
    MODO CUADRADO — mueve los mismos elementos del header/barra lateral/
    diagramación entre sus contenedores rectangulares y los del cuadrado
    (#squareStage). No hay markup duplicado: appendChild reubica los nodos
@@ -1257,6 +1575,8 @@ const sqLanding = document.getElementById("sqLanding");
 const sqHeader = document.getElementById("sqHeader");
 const sqLegend = document.getElementById("sqLegend");
 const sqCanvas = document.getElementById("sqCanvas");
+const weekBtnEls = Array.from(document.querySelectorAll("#weekBtns button"));
+const weekBtnsBox = document.getElementById("weekBtns");
 const dayGroupEl = document.querySelector(".day-group");
 const rowEstimuloTarget = document.getElementById("rowEstimuloTarget");
 const symbolHeadingEl = document.querySelector("#symbolLegend h2");
@@ -1303,7 +1623,8 @@ function toRectMode(){
   headerEl.appendChild(controlsEl);
   layoutEl.appendChild(symbolLegendEl);
   layoutEl.appendChild(canvasHolderEl);
-  document.body.classList.remove("square-mode", "square-viz");
+  document.body.classList.remove("square-mode", "square-viz", "square-monthly");
+  if(window.weekPlay && window.weekPlay.reset) window.weekPlay.reset();
   dayGroupEl.style.width = "";
 }
 
@@ -1372,6 +1693,10 @@ new p5((p)=>{
       formatBtn.setAttribute("aria-label", label);
       fitToHolder(true);
     });
+
+    // arranca en formato CUADRADO (no en el horizontal). El botón sigue
+    // permitiendo volver al formato web.
+    formatBtn.click();
   };
 
   p.windowResized = ()=> fitToHolder();
@@ -1547,9 +1872,10 @@ new p5((p)=>{
     p.textFont("Inter");
     const isSquare = document.body.classList.contains("square-mode");
     p.textSize(isSquare ? SQUARE_HOUR_TEXT : 11);
-    // en cuadrado la línea no entra en la franja transparente (0..SQ_X_PAD):
-    // se corta en el borde real del canvas para no dibujarse sobre la leyenda
-    const lineLeft = isSquare ? Math.max(plotAreaLeft, SQ_X_PAD) : plotLeft + 10;
+    // en cuadrado la línea no entra en la franja transparente (0..SQ_X_PAD) y
+    // además se recorta un poco más por izquierda (+34) para que no se extienda
+    // tanto; el tronco sigue centrado según su propio cálculo en drawMonthly.
+    const lineLeft = isSquare ? Math.max(plotAreaLeft, SQ_X_PAD) + 34 : plotLeft + 10;
     const lineRight = isSquare ? plotAreaRight : plotRight + 20;
     // labelX ya no depende de lineLeft -- así se puede mover la línea sola
     // sin arrastrar las horas (quedó fijo en la posición que tenía cuando
@@ -1608,6 +1934,7 @@ new p5((p)=>{
     for(let i = 0; i < PULSIONES.length; i++){
       const e = PULSIONES[i];
       if(!dayVisible(e)) continue;
+      if(!varVisible(e)) continue;
       const weekIdx = (e.week || 1) - 1;
       if(weekProgress[weekIdx] <= 0) continue;
       const y = hourY(e.hour);
@@ -1620,60 +1947,113 @@ new p5((p)=>{
 
   // MONTHLY — a single trunk at double width; branches from weeks 1, 2 and 3 all sprout from it
   function drawMonthly(now){
-    const trunkX = (plotAreaLeft + plotAreaRight) / 2;
+    // el tronco va centrado entre las líneas de hora VISIBLES. En cuadrado esas
+    // líneas arrancan en Math.max(plotAreaLeft, SQ_X_PAD) + 34 (mismo valor que
+    // drawHourGrid), así que se usa ese mismo extremo para centrar.
+    // tronco = punto medio exacto de las líneas de hora VISIBLES (mismo lineL
+    // que drawHourGrid, mismo lineRight = plotAreaRight).
+    const isSq = document.body.classList.contains("square-mode");
+    const lineL = isSq ? Math.max(plotAreaLeft, SQ_X_PAD) + 34 : plotAreaLeft;
+    const trunkX = (lineL + plotAreaRight) / 2;
+    // los botones de semana (#weekBtns, DOM absoluto dentro de #sqCanvas) se
+    // alinean bajo el tronco: el canvas está corrido -SQ_X_PAD respecto a
+    // #sqCanvas y es SQ_X_PAD más ancho.
+    if(isSq && weekBtnsBox){
+      weekBtnsBox.style.transform = "translateX(" + (trunkX - p.width / 2 - SQ_X_PAD / 2) + "px)";
+    }
+    const wp = window.weekPlay;
+    // filtro de semanas APARTE (botones #weekBtns): si hay semanas elegidas,
+    // se muestran sólo esas, completas -> se ignora la reproducción día por día.
+    const manualWeeks = weekManual();
+    // reproducción por semanas (panel #weekPanel): tronco completo y ramas
+    // reveladas por (semana, día). Sin filtro manual y con la repro activa.
+    const byWeek = wp && wp.active && !manualWeeks;
+
     let progress = 0;
-    if(renderState.started){
-      const elapsed = now - renderState.monthStartTime;
-      progress = easeOutQuad(p.constrain(elapsed / MONTH_DURATION, 0, 1)); // arranque más parejo con el resto del crecimiento
+    if(byWeek || manualWeeks){
+      progress = 1; // tronco completo para la repro por semanas y el filtro manual
+    } else if(renderState.started){
+      // "Renderizar crecimiento": el tronco crece rápido al principio (primeros
+      // ~12% de MONTH_DURATION) y luego las ramas se van revelando día a día.
+      const el = now - renderState.monthStartTime;
+      progress = easeOutCubic(p.constrain(el / (MONTH_DURATION * 0.12), 0, 1));
     }
     const growY = p.lerp(plotBottom, plotTop, progress);
 
     if(progress > 0) drawTrunk(trunkX, growY, 2);
-    trunkLabel("Semanas 1 – 3", trunkX);
+
+    // el rótulo de semanas ahora son botones DOM (#weekBtns): se activan (.on)
+    // acá, según cuántas semanas ya reprodujo #weekPanel. En el formato web (no
+    // cuadrado) se mantiene el rótulo dibujado "Semanas 1 – 3".
+    let wpReached = null;      // gate de la reproducción por semanas (#weekPanel)
+    let renderReached = null;  // gate de "Renderizar crecimiento": día a día
+    let weeksOn = 0;
+    if(byWeek){
+      const spw = Math.max(0.001, wp.secPerWeek);
+      const done = wp.elapsed >= spw * 3 - 1e-6;
+      const wkFloat = wp.elapsed / spw;                          // 0..3
+      const wkIdx = done ? 2 : Math.min(2, Math.floor(wkFloat)); // semana actual 0..2
+      const dayIdx = done ? 6 : Math.min(6, Math.floor((wkFloat % 1) * 7)); // día actual 0..6
+      weeksOn = done ? 3 : wkIdx + 1;
+      wpReached = (e)=>{
+        if(done) return true;
+        const ew = (e.week || 1) - 1;
+        return ew < wkIdx || (ew === wkIdx && e.day <= dayIdx);
+      };
+    } else if(renderState.started && !manualWeeks){
+      // las ramas aparecen en ORDEN DÍA A DÍA: semana 1 lunes..domingo, luego
+      // semana 2, luego semana 3 -- repartido en MONTH_DURATION.
+      const frac = p.constrain((now - renderState.monthStartTime) / MONTH_DURATION, 0, 1);
+      const slotsReached = Math.floor(frac * 21 + 1e-6); // 3 semanas x 7 días
+      renderReached = (e)=>{
+        if(frac >= 1) return true;
+        return (((e.week || 1) - 1) * 7 + e.day) < slotsReached;
+      };
+      if(!document.body.classList.contains("square-mode")) trunkLabel("Semanas 1 – 3", trunkX);
+    } else if(!document.body.classList.contains("square-mode")){
+      trunkLabel("Semanas 1 – 3", trunkX);
+    }
+    // estado .on de los botones: con filtro manual reflejan las semanas
+    // elegidas; si no, se van activando con la reproducción
+    for(let b = 0; b < weekBtnEls.length; b++){
+      const on = manualWeeks ? selectedWeeks.has(b + 1) : (b < weeksOn);
+      weekBtnEls[b].classList.toggle("on", on);
+    }
 
     const visible = [];
     for(let i = 0; i < PULSIONES.length; i++){
       const e = PULSIONES[i];
-      if(!dayVisible(e)) continue;
+      if(!weekVisible(e)) continue;   // filtro manual de semanas
+      if(!dayVisible(e)) continue;    // filtro de días
+      if(!varVisible(e)) continue;    // filtro por variables de la simbología
       if(progress <= 0) continue;
       const y = hourY(e.hour);
-      if(y >= growY){
-        visible.push({ i, e, y, dir: e.escrita ? 1 : -1, trunkX, groupKey: "m" });
-      }
+      // en modo "Renderizar crecimiento" la rama necesita su slot de día Y que
+      // el tronco ya haya pasado su hora (por si aún está creciendo).
+      if(byWeek ? !wpReached(e) : ((renderReached && !renderReached(e)) || y < growY)) continue;
+      visible.push({ i, e, y, dir: e.escrita ? 1 : -1, trunkX, groupKey: "m" });
     }
     renderBranches(visible, now, 2);
   }
 
-  // branches — sprout once the trunk's growth passes their hour, then grow.
-  // Branches that would collide (same trunk/direction/hour) start from the same
-  // point but sway out of phase with each other, so movement is what keeps them apart.
+  // branches — sprout once revealed (por hora o por día según el modo), luego
+  // crecen. Fase del vaivén: precalculada (SWAY_*) para que las ramas del mismo
+  // origen queden repartidas por el ciclo (no se tapan) y NO salten al aparecer
+  // otras. Amplitud: fija por rama.
   function renderBranches(visible, now, trunkScale){
-    const overlapGroups = new Map();
-    visible.forEach(v=>{
-      const key = v.groupKey + "_" + v.dir + "_" + Math.round(v.e.hour * 4);
-      if(!overlapGroups.has(key)) overlapGroups.set(key, []);
-      overlapGroups.get(key).push(v);
-    });
-    overlapGroups.forEach(group=>{
-      group.forEach((v, idx)=>{
-        v.groupSize = group.length;
-        v.swayPhase = group.length > 1 ? (idx / group.length) * Math.PI * 2 : v.i * 2.4;
-      });
-    });
-
+    const swayMap = trunkScale === 2 ? SWAY_MONTHLY : SWAY_WEEKLY;
     visible.forEach(v=>{
       if(!branchAppear.has(v.i)) branchAppear.set(v.i, now);
       const age = now - branchAppear.get(v.i);
-      // easeOutCubic crece muy rápido al principio (~66% del largo ya a los
-      // 420ms de 1400ms totales), lo que hacía ver la rama como si apareciera
-      // ya casi completa en vez de irse extendiendo; easeInOutQuad arranca
-      // despacio y se nota mejor el crecimiento.
+      // easeInOutQuad arranca despacio y se nota mejor el crecimiento.
       const growFactor = easeInOutQuad(p.constrain(age / BRANCH_GROW_MS, 0, 1));
-      drawBranch(v.e, v.y, growFactor, v.swayPhase, v.groupSize, v.trunkX, trunkScale);
+      const swayPhase = swayMap[v.i] || 0;
+      const windAmp = 8 + (v.i % 4) * 1.8;         // 8..13.4, movimiento visible, estable
+      drawBranch(v.e, v.y, growFactor, swayPhase, windAmp, v.trunkX, trunkScale);
     });
   }
 
-  function drawBranch(e, y, growFactor, swayPhase, groupSize, trunkX, trunkScale){
+  function drawBranch(e, y, growFactor, swayPhase, windAmp, trunkX, trunkScale){
     const dir = e.escrita ? 1 : -1;
     const isSquare = document.body.classList.contains("square-mode");
     const isMonthly = trunkScale === 2;
@@ -1706,10 +2086,9 @@ new p5((p)=>{
     const amp = isWavy ? (isSquare ? 5 : 6) : 0;
     const freq = isSquare ? 0.5 : 0.3;
 
-    // wind sway — branches sharing an origin point are spread across the sway
-    // cycle (evenly out of phase), so their movement is what keeps them apart
-    const t0 = performance.now() * 0.0011;
-    const windAmp = groupSize > 1 ? 10 : 4.5;
+    // wind sway — fase y amplitud fijas por rama (ver renderBranches), así no
+    // hay saltos al aparecer ramas nuevas
+    const t0 = performance.now() * 0.0013;
     const wind = Math.sin(t0 + swayPhase) * windAmp;
 
     // start exactly at the trunk's tapered surface, not its center line
