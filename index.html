@@ -132,19 +132,15 @@
     letter-spacing:0.2px;
   }
   #renderBtn:hover{ background:#443c31; }
-  /* modo cuadrado: el botón sale de la columna de leyenda y queda como
-     control flotante -- oculto en la pantalla landing, fijo abajo-izquierda
-     en la pantalla viz (ver toSquareMode/toSquareViz). */
+  /* modo cuadrado: oculto en la pantalla landing; en la viz va DEBAJO de la
+     simbología, dentro de la columna de leyenda (ver toSquareMode). */
   body.square-mode #renderBtn{ display:none; }
   body.square-viz #renderBtn{
     display:inline-block;
-    position:fixed;
-    left:16px;
-    bottom:16px;
-    width:auto;
-    z-index:60;
-    padding:12px 20px;
-    font-size:13.5px;
+    align-self:flex-start;
+    margin-top:16px;
+    padding:9px 18px;
+    font-size:12px;
   }
   .mode-row{
     display:flex;
@@ -1595,9 +1591,9 @@ function toSquareMode(){
   sqLanding.appendChild(titleEl);
   sqLanding.appendChild(introEl);
   sqLanding.appendChild(modeRowEl);
-  // el botón de render ya no vive en la columna de leyenda: se saca del
-  // flujo y queda flotando (position:fixed, ver CSS body.square-viz #renderBtn)
-  document.body.appendChild(renderBtnEl);
+  // "Renderizar crecimiento" va DEBAJO de la simbología, dentro de la columna
+  // de leyenda (ver CSS body.square-viz #renderBtn)
+  document.querySelector(".symbol-group").appendChild(renderBtnEl);
   sqLegend.appendChild(symbolLegendEl);
   sqCanvas.appendChild(canvasHolderEl);
   document.body.classList.add("square-mode");
@@ -1974,9 +1970,9 @@ new p5((p)=>{
       progress = 1; // tronco completo para la repro por semanas y el filtro manual
     } else if(renderState.started){
       // "Renderizar crecimiento": el tronco crece rápido al principio (primeros
-      // ~12% de MONTH_DURATION) y luego las ramas se van revelando día a día.
+      // ~24% de MONTH_DURATION) y luego las ramas se van revelando día a día.
       const el = now - renderState.monthStartTime;
-      progress = easeOutCubic(p.constrain(el / (MONTH_DURATION * 0.12), 0, 1));
+      progress = easeOutCubic(p.constrain(el / (MONTH_DURATION * 0.24), 0, 1));
     }
     const growY = p.lerp(plotBottom, plotTop, progress);
 
