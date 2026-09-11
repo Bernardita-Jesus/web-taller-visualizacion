@@ -1212,6 +1212,7 @@
 <div id="weekPanel" class="ctrl-panel">
   <div class="vp-controls">
     <button id="sqStart" class="vp-primary" type="button">Comenzar video</button>
+    <button id="sqPlay" type="button">Reproducir sin grabar</button>
     <button id="sqPause" type="button" disabled>Pausa</button>
     <button id="sqReset" type="button">Reiniciar</button>
     <label class="vp-field">Bajada
@@ -1605,6 +1606,7 @@ document.getElementById("homeBtn").addEventListener("click", ()=>{
 window.weekPlay = { active:false, reset(){} };
 (function(){
   const startBtn   = document.getElementById("sqStart");
+  const playBtn    = document.getElementById("sqPlay");
   const pauseBtn   = document.getElementById("sqPause");
   const resetBtn   = document.getElementById("sqReset");
   const bajadaIn   = document.getElementById("vpBajadaSec");
@@ -1832,6 +1834,10 @@ window.weekPlay = { active:false, reset(){} };
     play(true);
   }
   startBtn.addEventListener("click", onStartClick);
+  // "Reproducir sin grabar": corre la misma secuencia pero sin pedir permiso
+  // de compartir pestaña ni generar el .webm -- para previsualizar o mirar
+  // la viz sin la fricción/costo de grabar.
+  if(playBtn) playBtn.addEventListener("click", ()=> play(true));
   pauseBtn.addEventListener("click", ()=> playing ? pause() : play(false));
   resetBtn.addEventListener("click", ()=>{
     if(window.squareRecorder) window.squareRecorder.abort();
