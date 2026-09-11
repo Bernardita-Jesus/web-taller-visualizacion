@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<!-- para exportar la visualización cuadrada como PNG 1920x1920 (ver "DESCARGAR") -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
     --bg: #f2ecdd;
@@ -326,6 +328,11 @@
      y resalte al elegirlo. */
   .sym-hit{ cursor:pointer; }
   .sym-hit rect{ transition:fill .12s ease; }
+  /* la línea/curva del ícono tenía que cambiar de color de un salto mientras el
+     fondo (rect) todavía estaba en transición -- eso era el parpadeo/"se pega"
+     al activar un filtro. Ahora el trazo también se desvanece parejo. */
+  .sym-hit line,
+  .sym-hit path{ transition:stroke .12s ease; }
   .sym-hit:hover rect{ fill:#e4dcc6; }
   .sym-hit.on rect{ fill:#2b2620; }
   .sym-hit.on line,
@@ -403,7 +410,9 @@
     cursor:pointer;
     user-select:none;
     border:1px solid var(--border);
-    transition: background 0.15s ease, color 0.15s ease;
+    /* el borde también en la transición: si no, cambiaba de golpe mientras el
+       fondo/texto todavía se desvanecían y se veía como un parpadeo */
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
   .day-row:hover{
     background:#e9e0c9;
@@ -464,6 +473,94 @@
     border-color:#2b2620;
   }
 
+  /* "Cómo leer el árbol": mismo estilo que #formatBtn, justo arriba de él.
+     Fijo y siempre visible (web y cuadrado), fuera del cuadrado/canvas -- no
+     sale en el PNG/video exportados. Abre #helpOverlay con una ilustración
+     de ejemplo de la simbología. Ver JS "AYUDA / SIMBOLOGÍA". */
+  #helpBtn{
+    position:fixed;
+    right:16px;
+    bottom:64px;
+    width:38px;
+    height:38px;
+    padding:0;
+    z-index:61;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:transparent;
+    color:var(--muted);
+    border:1px solid var(--border);
+    border-radius:13px;
+    cursor:pointer;
+  }
+  #helpBtn svg{ display:block; }
+  #helpBtn:hover{ background:#e9e0c9; }
+  body.square-mode #helpBtn{ width:30px; height:30px; bottom:56px; }
+
+  /* ventana de ayuda: fondo semitransparente + tarjeta centrada */
+  #helpOverlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:90;
+    align-items:center;
+    justify-content:center;
+    background:rgba(43,38,32,.45);
+    padding:24px;
+  }
+  #helpOverlay.open{ display:flex; }
+  #helpCard{
+    position:relative;
+    width:min(640px, 100%);
+    max-height:calc(100vh - 48px);
+    overflow-y:auto;
+    background:#f8f4ea;
+    border:1px solid var(--border);
+    border-radius:16px;
+    box-shadow:0 12px 40px rgba(43,38,32,.25);
+    padding:30px 28px 24px;
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+  }
+  #helpCard h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:21px;
+    margin:0 0 4px;
+    color:#23445a;
+  }
+  #helpClose{
+    position:absolute;
+    top:16px; right:16px;
+    width:28px; height:28px;
+    border:1px solid var(--border);
+    border-radius:50%;
+    background:transparent;
+    color:var(--muted);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    line-height:1;
+    padding:0;
+  }
+  #helpClose:hover{ background:#e9e0c9; }
+  .help-illustration{ width:100%; height:auto; display:block; margin-top:6px; }
+  #helpDownload{
+    margin-top:14px;
+    padding:8px 16px;
+    font:inherit;
+    font-size:12px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:#fdfaf1;
+    color:var(--text);
+    cursor:pointer;
+  }
+  #helpDownload:hover{ background:#f1e9d5; }
+
   /* "Volver al inicio": fijo arriba a la derecha, fuera del cuadrado. Sólo
      visible dentro de una visualización (pantalla viz del cuadrado). */
   #homeBtn{
@@ -485,14 +582,16 @@
   #homeBtn:hover{ background:#f1e9d5; }
   body.square-viz #homeBtn{ display:block; }
 
-  /* === PANELES DE CONTROL (columna izquierda, fuera del cuadrado) ===
-     .ctrl-panel es la caja compartida. #videoPanel: secuenciador de la pantalla
-     de inicio (escribe la bajada). #weekPanel: secuenciador de video de la
-     pantalla viz -> Renderizar crecimiento, los 7 días uno por uno, mostrar
-     todo, filtro al azar de días y de ramas (solo visible en mensual cuadrado). */
+  /* === PANEL DE CONTROL (columna izquierda, fuera del cuadrado) ===
+     .ctrl-panel es la caja compartida; #weekPanel es EL panel de video, uno
+     solo, visible en toda la sesión cuadrada (portada + viz) -- recorre las
+     dos diapos de corrido: escribe la bajada, pasa a la viz, aprieta
+     "Renderizar crecimiento", los 7 días uno por uno, "Mostrar todo",
+     4 combinaciones al azar y "Datos". */
   .ctrl-panel{
     position:fixed;
     left:16px;
+    top:20px;
     width:236px;
     max-height:calc(100vh - 32px);
     overflow-y:auto;
@@ -509,13 +608,27 @@
     font-size:12px;
     color:var(--text);
   }
-  #videoPanel{ top:62%; transform:translateY(-50%); }
-  #weekPanel{ top:20px; }
-  /* el panel de video sólo en la pantalla de inicio del cuadrado (donde se ve
-     y se escribe la bajada); no en la pantalla de visualización */
-  body.square-mode:not(.square-viz) #videoPanel{ display:flex; }
-  /* #weekPanel solo en la pantalla viz del mensual cuadrado */
-  body.square-viz.square-monthly #weekPanel{ display:flex; }
+  /* visible en toda la sesión cuadrada, tanto en la portada como en la viz */
+  body.square-mode #weekPanel{ display:flex; }
+  /* botón de exportar PNG: texto más chico para que entre en el panel */
+  #sqDownload{ white-space:normal; font-size:12.5px; margin-top:4px; }
+  /* indicador de grabación en curso (fuera del cuadrado, no se graba) */
+  #recDot{
+    display:none;
+    position:fixed;
+    right:16px;
+    bottom:62px;
+    z-index:80;
+    padding:5px 10px;
+    border-radius:12px;
+    background:#b3261e;
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.4px;
+    box-shadow:0 3px 10px rgba(43,38,32,.2);
+  }
   /* controles apilados a ancho completo */
   .ctrl-panel .vp-controls{
     display:flex;
@@ -580,27 +693,6 @@
     border-radius:50%;
     background:#2b2620;
   }
-  .ctrl-panel .vp-markers{ position:relative; height:13px; }
-  .ctrl-panel .vp-marker{
-    position:absolute;
-    transform:translateX(-50%);
-    font-size:10px;
-    color:var(--muted);
-    white-space:nowrap;
-  }
-  .ctrl-panel .vp-marker::before{
-    content:"";
-    display:block;
-    width:1px; height:4px;
-    background:var(--border);
-    margin:0 auto 2px;
-  }
-  /* el primer y último marcador se alinean al borde para no cortarse */
-  .ctrl-panel .vp-marker:first-child{ transform:none; }
-  .ctrl-panel .vp-marker:first-child::before{ margin-left:0; }
-  .ctrl-panel .vp-marker:last-child{ transform:translateX(-100%); }
-  .ctrl-panel .vp-marker:last-child::before{ margin-right:0; }
-
   /* =====================================================================
      MODO CUADRADO (alternativa completa de página, activada por #formatBtn)
 
@@ -642,11 +734,14 @@
     border:1px solid var(--border);
     border-radius:4px;
   }
-  /* en modo cuadrado el lado se limita para que el cuadrado entre completo
-     a la derecha del panel de video; sigue siendo cuadrado (aspect-ratio) */
+  /* en modo cuadrado el cuadrado tiene un lado FIJO en px: no se achica ni se
+     agranda al cambiar el tamaño de la ventana (así la grabación y la
+     diagramación quedan siempre iguales). Si la pantalla es más chica que
+     esto, se recorta -- es a propósito. */
   body.square-mode .square-box{
-    width:auto;
-    height:min(90vmin, calc(100vw - 286px));
+    width:760px;
+    height:760px;
+    flex-shrink:0;
     aspect-ratio:1 / 1;
   }
 
@@ -665,7 +760,7 @@
   .sq-landing{ position:relative; }
   /* la bajada no lleva <br>: con este ancho + text-wrap:balance cae en 4
      líneas de largo parecido. La pregunta (strong) sí conserva su <br>. */
-  .sq-landing .intro{ margin-top:24px; max-width:285px; text-wrap:balance; }
+  .sq-landing .intro{ margin-top:24px; max-width:310px; text-wrap:balance; }
   .sq-landing .intro-desc br{ display:none; }
   .sq-landing .intro strong{ margin-bottom:36px; }
   /* los botones van fuera del flujo: posición fija en la diapo, así NO se
@@ -674,21 +769,13 @@
   .sq-landing .mode-row{
     position:absolute;
     left:50%;
-    top:68%;
+    top:75%;
     transform:translateX(-50%);
     margin-top:0;
     justify-content:center;
     gap:26px;
   }
   .sq-landing .mode-btn{ flex:0 0 auto; }
-  /* al terminar de escribir la bajada, el botón elegido se oscurece 2s
-     (ver runEndAction) antes de abrir la visualización. Lleva .sq-landing
-     para ganarle en especificidad al override claro de .mode-btn.active */
-  body.square-mode .sq-landing .mode-btn.vp-picked{
-    background:#2b2620;
-    color:#f2ecdd;
-    border-color:#2b2620;
-  }
 
   .sq-viz{
     display:none;
@@ -786,6 +873,9 @@
     background:rgba(248,244,234,.9);
     color:var(--muted);
     cursor:pointer;
+    /* como drawMonthly revisa/reaplica .on en cada frame, sin transición el
+       botón se veía "pegado"/parpadeando entre estados */
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
   #weekBtns button:hover{ background:#e9e0c9; }
   #weekBtns button.on{
@@ -809,7 +899,7 @@
   /* ---- formato cuadrado: textos, íconos y botones un poco más chicos que
      en el formato web (solo afecta a body.square-mode / body.square-viz) ---- */
   body.square-mode .sq-landing .title{ font-size:54px; }
-  body.square-mode .sq-landing .intro{ font-size:11.5px; }
+  body.square-mode .sq-landing .intro{ font-size:12.5px; }
   body.square-mode .sq-landing .intro strong{ font-size:21px; }
 
   body.square-mode #symbolLegend h2{ font-size:14px; }
@@ -1025,48 +1115,104 @@
   <svg width="17" height="17" viewBox="0 0 17 17"><rect x="2" y="2" width="13" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
 </button>
 
+<!-- botón "Cómo leer el árbol": ícono de hoja de papel, justo arriba del de
+     formato. Abre #helpOverlay con una ilustración de ejemplo que explica
+     gráficamente la simbología de las ramas. Ver JS "AYUDA / SIMBOLOGÍA". -->
+<button id="helpBtn" type="button" title="Cómo leer el árbol" aria-label="Cómo leer el árbol">
+  <svg width="15" height="18" viewBox="0 0 15 18">
+    <path d="M1.5 1h8l4 4v12h-12z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+    <path d="M9.5 1v4h4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+    <line x1="4" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1"/>
+    <line x1="4" y1="10.6" x2="11" y2="10.6" stroke="currentColor" stroke-width="1"/>
+    <line x1="4" y1="13.2" x2="8.5" y2="13.2" stroke="currentColor" stroke-width="1"/>
+  </svg>
+</button>
+
+<!-- ventana de ayuda con la ilustración de ejemplo -->
+<div id="helpOverlay">
+  <div id="helpCard" role="dialog" aria-modal="true" aria-label="Cómo leer el árbol">
+    <button id="helpClose" type="button" aria-label="Cerrar">×</button>
+    <h2>Cómo leer el árbol</h2>
+    <svg class="help-illustration" width="730" height="505" viewBox="-90 0 730 505" xmlns="http://www.w3.org/2000/svg">
+      <!-- tronco -->
+      <polygon points="145,450 157,50 163,50 175,450" fill="#2b2620"/>
+      <!-- marcas de hora, a la izquierda del tronco -- sólo el inicio (07:00,
+           a la altura de la base) y el final (23:00, a la altura de la punta)
+           del período -->
+      <g stroke="#ddd3bd" stroke-width="1" stroke-dasharray="2 3">
+        <line x1="100" y1="450" x2="140" y2="450"/>
+        <line x1="100" y1="50" x2="140" y2="50"/>
+      </g>
+      <g fill="#756c5e" font-family="Inter, sans-serif" font-size="10" text-anchor="end" font-weight="600">
+        <text x="95" y="454">07:00</text>
+        <text x="95" y="54">23:00</text>
+      </g>
+      <!-- fila 1: escrita/derecha vs no escrita/izquierda -->
+      <circle cx="173.5" cy="400" r="3" fill="#2b2620"/>
+      <path d="M173.5,400 L223.1,382" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <circle cx="146.5" cy="400" r="3" fill="#2b2620"/>
+      <path d="M146.5,400 L96.9,382" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <text x="229" y="378" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Escrita</text>
+      <text x="229" y="394" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">rama a la derecha</text>
+      <text x="91" y="386" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600" text-anchor="end">No escrita</text>
+      <text x="91" y="402" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5" text-anchor="end">rama a la izquierda</text>
+      <!-- fila 2: estímulo -- continua vs segmentada -->
+      <circle cx="170.5" cy="310" r="3" fill="#2b2620"/>
+      <path d="M170.5,310 L326,270" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <circle cx="169.6" cy="280" r="3" fill="#2b2620"/>
+      <path d="M169.6,280 L325.1,240" stroke="#2b2620" stroke-width="2" stroke-dasharray="8 6" fill="none"/>
+      <text x="332" y="266" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Continua</text>
+      <text x="332" y="282" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">sin estímulo sensorial</text>
+      <text x="331" y="236" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Segmentada</text>
+      <text x="331" y="252" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">con estímulo sensorial</text>
+      <!-- fila 3: sentimiento -- lisa vs ondulada (del lado izquierdo) -->
+      <circle cx="151.9" cy="220" r="3" fill="#2b2620"/>
+      <path d="M151.9,220 L-3.6,180" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <circle cx="152.8" cy="190" r="3" fill="#2b2620"/>
+      <!-- misma cadencia que la rama ondulada de la barra lateral (curva
+           corrugada de varias ondas chicas), espejada hacia la izquierda y
+           estirada al mismo largo que "Larga" -->
+      <path d="M152.8,190 Q145,182 137,186 T122,182 T106,178 T91,174 T75,170 T59,166 T44,162 T28,158 T13,154 T-3,150" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <text x="-9" y="176" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600" text-anchor="end">Lisa</text>
+      <text x="-9" y="192" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5" text-anchor="end">alegre</text>
+      <text x="-9" y="146" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600" text-anchor="end">Ondulada</text>
+      <text x="-9" y="162" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5" text-anchor="end">melancólico</text>
+      <!-- fila 4: magnitud -- corta vs larga -->
+      <circle cx="165.4" cy="130" r="3" fill="#2b2620"/>
+      <path d="M165.4,130 L215,112" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <circle cx="164.5" cy="100" r="3" fill="#2b2620"/>
+      <path d="M164.5,100 L320,60" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <text x="221" y="108" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Corta</text>
+      <text x="221" y="124" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">magnitud normal</text>
+      <text x="326" y="56" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Larga</text>
+      <text x="326" y="72" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">mayor magnitud</text>
+      <!-- fila de colores por día, generada por JS a partir de DAYS/DAY_COLORS -->
+      <g id="helpDayDots"></g>
+    </svg>
+    <button id="helpDownload" type="button">Descargar PNG</button>
+  </div>
+</div>
+
 <!-- volver a la pantalla de inicio del cuadrado (fijo arriba a la derecha,
      fuera del cuadrado). Sólo aparece cuando ya se entró a una visualización. -->
 <button id="homeBtn" type="button" title="Volver al inicio" aria-label="Volver al inicio">↩ Inicio</button>
 
-<!-- PANEL DE VIDEO: secuenciador externo (fuera del cuadrado) para grabar.
-     Solo visible en modo cuadrado. Paso 1: (re)escribe la bajada debajo de la
-     pregunta en los segundos indicados. Ver JS "PANEL DE VIDEO". -->
-<div id="videoPanel" class="ctrl-panel">
-  <div class="vp-controls">
-    <button id="vpStart" class="vp-primary" type="button">Comenzar video</button>
-    <button id="vpPause" type="button" disabled>Pausa</button>
-    <button id="vpReset" type="button">Reiniciar</button>
-    <label class="vp-field">Bajada
-      <input id="vpBajadaSec" type="number" min="0.5" max="120" step="0.5" value="9"> s
-    </label>
-    <label class="vp-field">Al terminar
-      <select id="vpEndSelect">
-        <option value="modeMonthly" selected>Visualización mensual</option>
-        <option value="">— nada —</option>
-      </select>
-    </label>
-    <span id="vpClock" class="vp-clock">0.0 / 9.0 s</span>
-  </div>
-  <div class="vp-track">
-    <div class="vp-fill" id="vpFill"></div>
-    <div class="vp-head" id="vpHead"></div>
-  </div>
-  <div class="vp-markers" id="vpMarkers"></div>
-</div>
-
-<!-- PANEL DE VIDEO (pantalla viz del MENSUAL cuadrado): secuenciador para
-     grabar el recorrido completo -> Crecimiento (aprieta "Renderizar
-     crecimiento" y espera a que crezcan los árboles) -> los 7 días uno por
-     uno (Lunes..Domingo) -> "Mostrar todo" -> "Azar días" -> "Azar ramas".
-     Cada fase tiene su input de segundos; los 7 días comparten "seg/día".
-     Reemplaza al viejo panel "Reproducir semanas". Ver JS "PANEL DE VIDEO
-     (viz cuadrada)". -->
+<!-- PANEL DE VIDEO — UNO SOLO, visible en toda la sesión cuadrada (portada +
+     viz), que recorre las dos diapos de corrido:
+       Bajada (escribe el texto bajo la pregunta) -> Crecimiento (pasa a la
+       viz y aprieta "Renderizar crecimiento") -> los 7 días uno por uno
+       (Lunes..Domingo) -> "Mostrar todo" -> 4 combinaciones al azar
+       (semana+día+rama) -> "Datos" (vuelve a mostrar todo).
+     Cada fase tiene su input de segundos; los 7 días comparten "seg/día" y
+     las 4 combinaciones comparten "Azar combo". Ver JS "PANEL DE VIDEO". -->
 <div id="weekPanel" class="ctrl-panel">
   <div class="vp-controls">
     <button id="sqStart" class="vp-primary" type="button">Comenzar video</button>
     <button id="sqPause" type="button" disabled>Pausa</button>
     <button id="sqReset" type="button">Reiniciar</button>
+    <label class="vp-field">Bajada
+      <input id="vpBajadaSec" type="number" min="0.5" max="120" step="0.5" value="9"> s
+    </label>
     <label class="vp-field">Crecimiento
       <input id="sqCrecerSec" type="number" min="1" max="60" step="0.5" value="22"> s
     </label>
@@ -1074,7 +1220,7 @@
       <input id="sqDiaSec" type="number" min="0.3" max="30" step="0.1" value="3"> s
     </label>
     <label class="vp-field">Mostrar todo
-      <input id="sqTodosSec" type="number" min="0.5" max="30" step="0.5" value="2"> s
+      <input id="sqTodosSec" type="number" min="0.5" max="30" step="0.5" value="3"> s
     </label>
     <label class="vp-field">Azar combo
       <input id="sqComboSec" type="number" min="0.5" max="30" step="0.5" value="7"> s
@@ -1085,7 +1231,7 @@
     <div class="vp-fill" id="sqFill"></div>
     <div class="vp-head" id="sqHead"></div>
   </div>
-  <div class="vp-markers" id="sqMarkers"></div>
+  <button id="sqDownload" type="button">Descargar PNG 1920×1920</button>
 </div>
 
 <script>
@@ -1242,12 +1388,12 @@ DAYS.forEach((d,i)=>{
   row.appendChild(dot);
   row.appendChild(document.createTextNode(d));
   row.addEventListener("click", ()=>{
+    pruneBranchAppear();
     if(selectedDays.has(i)) selectedDays.delete(i);
     else selectedDays.add(i);
     document.querySelectorAll(".day-row").forEach(r=>{
       r.classList.toggle("selected", selectedDays.has(Number(r.dataset.day)));
     });
-    branchAppear = new Map();
   });
   dayLegend.appendChild(row);
 });
@@ -1262,10 +1408,10 @@ function weekManual(){ return selectedWeeks.size > 0; }
 function weekVisible(e){ return !weekManual() || selectedWeeks.has(e.week || 1); }
 Array.from(document.querySelectorAll("#weekBtns button")).forEach((b)=>{
   b.addEventListener("click", ()=>{
+    pruneBranchAppear();
     const w = (Number(b.dataset.week) || 0) + 1; // 1..3
     if(selectedWeeks.has(w)) selectedWeeks.delete(w);
     else selectedWeeks.add(w);
-    branchAppear = new Map();
   });
 });
 
@@ -1291,20 +1437,42 @@ function varVisible(e){
 }
 document.querySelectorAll(".sym-hit").forEach((el)=>{
   el.addEventListener("click", ()=>{
+    pruneBranchAppear();
     const v = el.dataset.var;
     if(selectedVars.has(v)) selectedVars.delete(v);
     else selectedVars.add(v);
     document.querySelectorAll(".sym-hit").forEach(o=> o.classList.toggle("on", selectedVars.has(o.dataset.var)));
-    branchAppear = new Map();
   });
 });
 
 /* ---------------------------------------------------------------
-   HELPERS DE FILTRO PARA EL SECUENCIADOR DE VIDEO
-   Aplican o limpian los filtros de día / simbología desde código y
-   mantienen sincronizadas las pastillas de la leyenda (que si no,
-   sólo cambian de estado desde sus propios listeners de click).
+   HELPERS DE FILTRO
+   Aplican o limpian los filtros de día / simbología / semana y mantienen
+   sincronizadas las pastillas de la leyenda.
+
+   pruneBranchAppear() es la clave de CÓMO deben crecer las ramas al cambiar
+   un filtro: borra de branchAppear sólo las ramas que en ESE momento NO
+   están visibles. Así:
+     - las ramas que siguen visibles antes y después del cambio NO reinician
+       (no todo el árbol salta/parpadea de golpe), y
+     - las ramas que el nuevo filtro revela (sea la primera vez o de nuevo,
+       porque antes habían quedado ocultas) SÍ vuelven a crecer desde cero,
+       en vez de aparecer ya crecidas de golpe.
+   Se llama ANTES de cambiar selectedDays/selectedVars/selectedWeeks, tanto
+   desde los clicks manuales como desde el secuenciador de video.
 ------------------------------------------------------------------ */
+function currentlyVisibleIndices(){
+  const s = new Set();
+  for(let i = 0; i < PULSIONES.length; i++){
+    const e = PULSIONES[i];
+    if(dayVisible(e) && varVisible(e) && weekVisible(e)) s.add(i);
+  }
+  return s;
+}
+function pruneBranchAppear(){
+  const keep = currentlyVisibleIndices();
+  branchAppear.forEach((_, i)=>{ if(!keep.has(i)) branchAppear.delete(i); });
+}
 function syncDayRowsUI(){
   document.querySelectorAll(".day-row").forEach(r=>{
     r.classList.toggle("selected", selectedDays.has(Number(r.dataset.day)));
@@ -1320,21 +1488,18 @@ function setDayFilter(days){
   selectedDays.clear();
   if(days) days.forEach(d=> selectedDays.add(d));
   syncDayRowsUI();
-  branchAppear = new Map();
 }
 // vars: arreglo de tokens ("escrita:1", "sentimiento:ond", ...), o null para limpiar
 function setVarFilter(vars){
   selectedVars.clear();
   if(vars) vars.forEach(v=> selectedVars.add(v));
   syncSymHitsUI();
-  branchAppear = new Map();
 }
 // weeks: arreglo de semanas 1..3, o null para limpiar. El estado .on de los
 // botones #weekBtns lo recalcula drawMonthly a partir de selectedWeeks.
 function setWeekFilter(weeks){
   selectedWeeks.clear();
   if(weeks) weeks.forEach(w=> selectedWeeks.add(w));
-  branchAppear = new Map();
 }
 function clearSequencerFilters(){
   selectedDays.clear();
@@ -1342,7 +1507,6 @@ function clearSequencerFilters(){
   selectedWeeks.clear();
   syncDayRowsUI();
   syncSymHitsUI();
-  branchAppear = new Map();
 }
 
 // growth animation state, shared between the buttons and the sketch
@@ -1380,23 +1544,18 @@ function setMode(mode){
   viewMode = mode;
   modeWeeklyBtn.classList.toggle("active", mode === "semanal");
   modeMonthlyBtn.classList.toggle("active", mode === "mensual");
-  // el panel de semanas sólo existe para el mensual cuadrado
+  // el panel de video sólo existe para el mensual cuadrado
   document.body.classList.toggle("square-monthly", mode === "mensual");
-  if(window.weekPlay && window.weekPlay.reset) window.weekPlay.reset();
   branchAppear = new Map();
   // el árbol NO arranca a crecer solo al entrar a la visualización: se dispara
-  // a mano con "Renderizar crecimiento" (o con el panel de semanas). Si ya se
-  // estaba renderizando, se reinicia en el nuevo modo.
+  // a mano con "Renderizar crecimiento" (o lo dispara el panel de video, como
+  // parte de su paso "Crecimiento"). Si ya se estaba renderizando, se reinicia
+  // en el nuevo modo.
+  // OJO: setMode NO reinicia el panel de video (window.weekPlay.reset) -- lo
+  // hace justamente el paso "Crecimiento" del panel AL LLAMAR a setMode para
+  // pasar a la viz; reiniciarlo acá lo cortaría a mitad de su propia secuencia.
+  // El reinicio del panel vive en Reiniciar / ↩ Inicio / toRectMode.
   if(renderState.started) startRender();
-
-  // apenas se entra a la segunda visualización (viz del mensual cuadrado) se
-  // aprieta solo "Comenzar video": arranca la secuencia completa (crecimiento
-  // -> días -> combos -> datos). Se difiere un frame para que el panel ya esté
-  // visible y el layout recalculado (toSquareViz encola su recompute con rAF).
-  if(enteringSquareViz && mode === "mensual"){
-    const sqStart = document.getElementById("sqStart");
-    if(sqStart) requestAnimationFrame(()=> requestAnimationFrame(()=> sqStart.click()));
-  }
 }
 modeWeeklyBtn.addEventListener("click", ()=> setMode("semanal"));
 modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
@@ -1404,6 +1563,7 @@ modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
 // "Volver al inicio": vuelve a la pantalla de inicio del cuadrado y deja todo
 // en limpio (reproducción de semanas, filtros de día/semana, crecimiento).
 document.getElementById("homeBtn").addEventListener("click", ()=>{
+  if(window.squareRecorder) window.squareRecorder.abort();
   if(window.weekPlay && window.weekPlay.reset) window.weekPlay.reset();
   selectedDays.clear();
   selectedWeeks.clear();
@@ -1418,164 +1578,22 @@ document.getElementById("homeBtn").addEventListener("click", ()=>{
 });
 
 /* ---------------------------------------------------------------
-   PANEL DE VIDEO — secuenciador externo (fuera del cuadrado) para grabar.
-   Cada paso tiene label + duración (s) + apply(progresoLocal 0..1). Hoy hay
-   un solo paso ("bajada"): reescribe la bajada debajo de la pregunta letra
-   por letra en los segundos del input. Para sumar pasos, agregar entradas a
-   VIDEO_STEPS (la línea de tiempo y el motor ya los recorren en orden).
------------------------------------------------------------------- */
-(function(){
-  const descEl = document.querySelector(".intro-desc");
-  if(!descEl) return;
-
-  // texto completo de la bajada; el <br> del markup queda como salto de línea
-  const DESC_FULL = descEl.innerHTML
-    .replace(/<br\s*\/?>/gi, " [BR] ")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/ ?\[BR\] ?/g, "\n");
-  descEl.style.whiteSpace = "pre-wrap";
-  descEl.textContent = DESC_FULL; // reposo: bajada visible completa
-
-  const setDescProgress = (p)=>{
-    const n = Math.round(DESC_FULL.length * Math.max(0, Math.min(1, p)));
-    descEl.textContent = DESC_FULL.slice(0, n);
-  };
-
-  const secInput   = document.getElementById("vpBajadaSec");
-  const startBtn   = document.getElementById("vpStart");
-  const pauseBtn   = document.getElementById("vpPause");
-  const resetBtn   = document.getElementById("vpReset");
-  const endSelect  = document.getElementById("vpEndSelect");
-  const fillEl     = document.getElementById("vpFill");
-  const headEl     = document.getElementById("vpHead");
-  const clockEl    = document.getElementById("vpClock");
-  const markersEl  = document.getElementById("vpMarkers");
-
-  // al terminar de escribir la bajada: selecciona el botón elegido en "Al
-  // terminar", lo deja oscurecido 2 segundos y recién ahí lo abre (pasa a la
-  // visualización), como si el usuario lo hubiera seleccionado y confirmado
-  function runEndAction(){
-    const id = endSelect.value;
-    if(!id) return;
-    const btn = document.getElementById(id);
-    if(!btn) return;
-    btn.classList.add("vp-picked");        // se oscurece
-    setTimeout(()=>{
-      btn.classList.remove("vp-picked");
-      btn.click();                         // se "abre" -> entra a la visualización
-    }, 2000);
-  }
-
-  const bajadaDur = ()=> Math.max(0.1, parseFloat(secInput.value) || 0);
-  const VIDEO_STEPS = [
-    { id:"bajada", label:"Bajada", dur: bajadaDur, apply: setDescProgress }
-  ];
-  const totalDur = ()=> VIDEO_STEPS.reduce((s, st)=> s + st.dur(), 0);
-
-  function applyAt(elapsed){
-    let acc = 0;
-    for(const st of VIDEO_STEPS){
-      const d = st.dur();
-      const local = elapsed >= acc + d ? 1 : elapsed <= acc ? 0 : (elapsed - acc) / d;
-      st.apply(local);
-      acc += d;
-    }
-    renderTimeline(elapsed);
-  }
-
-  function renderMarkers(){
-    const total = totalDur();
-    let acc = 0;
-    markersEl.innerHTML = "";
-    VIDEO_STEPS.forEach((st)=>{
-      addMarker(total > 0 ? acc / total : 0, st.label);
-      acc += st.dur();
-    });
-    addMarker(1, "Fin");
-  }
-  function addMarker(frac, label){
-    const m = document.createElement("div");
-    m.className = "vp-marker";
-    m.style.left = (frac * 100) + "%";
-    m.textContent = label;
-    markersEl.appendChild(m);
-  }
-  function renderTimeline(elapsed){
-    const total = totalDur();
-    const frac = total > 0 ? Math.max(0, Math.min(1, elapsed / total)) : 0;
-    fillEl.style.width = (frac * 100) + "%";
-    headEl.style.left = (frac * 100) + "%";
-    clockEl.textContent = elapsed.toFixed(1) + " / " + total.toFixed(1) + " s";
-  }
-
-  let rafId = null, playing = false, elapsed = 0, lastT = 0;
-
-  function frame(now){
-    const dt = Math.max(0, (now - lastT) / 1000);
-    lastT = now;
-    elapsed = Math.max(0, Math.min(totalDur(), elapsed + dt));
-    applyAt(elapsed);
-    if(elapsed >= totalDur()){ playing = false; rafId = null; syncButtons(); runEndAction(); return; }
-    rafId = requestAnimationFrame(frame);
-  }
-  function play(fromZero){
-    if(fromZero) elapsed = 0;
-    if(playing || elapsed >= totalDur()) return;
-    playing = true;
-    lastT = performance.now();
-    syncButtons();
-    rafId = requestAnimationFrame(frame);
-  }
-  function pause(){
-    playing = false;
-    if(rafId) cancelAnimationFrame(rafId);
-    rafId = null;
-    syncButtons();
-  }
-  function reset(){
-    pause();
-    elapsed = 0;
-    renderTimeline(0);
-    descEl.textContent = DESC_FULL; // vuelve al estado de reposo
-  }
-  function syncButtons(){
-    const paused = !playing && elapsed > 0 && elapsed < totalDur();
-    pauseBtn.disabled = !playing && !paused;
-    pauseBtn.textContent = paused ? "Seguir" : "Pausa";
-  }
-
-  startBtn.addEventListener("click", ()=> play(true));           // reescribe desde cero
-  pauseBtn.addEventListener("click", ()=> playing ? pause() : play(false));
-  resetBtn.addEventListener("click", reset);
-  secInput.addEventListener("input", ()=>{
-    renderMarkers();
-    if(!playing) renderTimeline(elapsed);
-  });
-
-  renderMarkers();
-  renderTimeline(0);
-  syncButtons();
-})();
-
-/* ---------------------------------------------------------------
-   PANEL DE VIDEO (viz cuadrada) — secuenciador para grabar el recorrido
-   completo del mensual cuadrado, en este orden:
-     1) "Crecimiento": aprieta "Renderizar crecimiento" y deja pasar los
-        segundos que tarden los árboles en crecer (el tronco y las ramas
-        aparecen día a día, ya lo hace drawMonthly con renderState).
+   PANEL DE VIDEO — UNO SOLO para toda la sesión cuadrada (portada + viz).
+   Recorre las dos diapos de corrido, en este orden:
+     0) "Bajada": reescribe el texto bajo la pregunta, letra por letra.
+     1) "Crecimiento": pasa a la viz (setMode) y aprieta "Renderizar
+        crecimiento"; deja pasar los segundos que tarden los árboles en
+        crecer (el tronco y las ramas aparecen día a día, ya lo hace
+        drawMonthly con renderState).
      2) Los 7 días uno por uno: Lunes, Martes, ... Domingo. En cada paso
         queda visible SÓLO ese día (se reemplaza el filtro anterior).
      3) "Mostrar todo": limpia los filtros y se ven todos los datos.
      4) Cuatro COMBINACIONES al azar, distintas entre sí: cada una mezcla
         1 o 2 semanas, un filtro de 1 a 3 días y una opción de la simbología
         (escrito, estímulo, sentimiento o magnitud).
-     5) "Mostrar datos": limpia todo y vuelve a mostrar todos los datos.
+     5) "Datos": limpia todo y vuelve a mostrar todos los datos.
    Cada fase tiene su input de segundos; los 7 días comparten "seg/día" y
    las cuatro combinaciones comparten "Azar combo".
-   Reemplaza al viejo panel "Reproducir semanas". El motor es el mismo
-   patrón de pasos que el panel de video de la pantalla de inicio.
    drawMonthly y algunos hooks (setMode/toRectMode/homeBtn) todavía
    consultan window.weekPlay; queda como stub inactivo y su .reset lo
    completa este secuenciador.
@@ -1585,6 +1603,7 @@ window.weekPlay = { active:false, reset(){} };
   const startBtn   = document.getElementById("sqStart");
   const pauseBtn   = document.getElementById("sqPause");
   const resetBtn   = document.getElementById("sqReset");
+  const bajadaIn   = document.getElementById("vpBajadaSec");
   const crecerIn   = document.getElementById("sqCrecerSec");
   const diaIn      = document.getElementById("sqDiaSec");
   const todosIn    = document.getElementById("sqTodosSec");
@@ -1592,8 +1611,24 @@ window.weekPlay = { active:false, reset(){} };
   const fillEl     = document.getElementById("sqFill");
   const headEl     = document.getElementById("sqHead");
   const clockEl    = document.getElementById("sqClock");
-  const markersEl  = document.getElementById("sqMarkers");
   if(!startBtn) return;
+
+  // paso "Bajada": reescribe el texto bajo la pregunta letra por letra. Es
+  // CONTINUO (se aplica cada frame según el elapsed general, ver frame()),
+  // no un fire() de una sola vez como el resto de los pasos.
+  const descEl = document.querySelector(".intro-desc");
+  const DESC_FULL = descEl ? descEl.innerHTML
+    .replace(/<br\s*\/?>/gi, " [BR] ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/ ?\[BR\] ?/g, "\n") : "";
+  if(descEl){ descEl.style.whiteSpace = "pre-wrap"; descEl.textContent = DESC_FULL; }
+  function setDescProgress(p){
+    if(!descEl) return;
+    const n = Math.round(DESC_FULL.length * Math.max(0, Math.min(1, p)));
+    descEl.textContent = DESC_FULL.slice(0, n);
+  }
 
   const secOf = (input, min)=> Math.max(min, parseFloat(input.value) || 0);
 
@@ -1655,6 +1690,7 @@ window.weekPlay = { active:false, reset(){} };
       sig = srt(weeks) + "#" + srt(days) + "|" + vars.join(",");
     }
     usedComboSigs.push(sig);
+    pruneBranchAppear(); // una sola vez, antes de aplicar las tres partes del combo
     setWeekFilter(weeks);
     setDayFilter(days);
     setVarFilter(vars);
@@ -1662,23 +1698,32 @@ window.weekPlay = { active:false, reset(){} };
 
   // pasos en orden; dur() -> segundos; fire() corre UNA sola vez, cuando la
   // línea de tiempo entra a ese paso. label corto para el marcador de fase.
+  const bajadaDur = ()=> secOf(bajadaIn, 0.5);
   function buildSteps(){
     const steps = [
+      // sin fire(): la bajada se aplica de forma continua en frame(), no acá
+      { key:"bajada", marker:"Bajada", dur: bajadaDur, fire:()=>{} },
+      // pausa fija: se queda 2s con la bajada ya escrita antes de pasar a la viz
+      { key:"pausaBajada", marker:null, dur:()=> 2, fire:()=>{} },
       { key:"crecer", marker:"Crecer", dur:()=> secOf(crecerIn, 1),
-        fire:()=>{ clearSequencerFilters(); startRender(); } }
+        // pasa de la portada a la viz (no-op si ya está ahí) y arranca el
+        // crecimiento del árbol
+        fire:()=>{ setMode("mensual"); clearSequencerFilters(); startRender(); } }
     ];
     DAYS.forEach((d, i)=>{
       steps.push({ key:"dia"+i, marker:i === 0 ? "Días" : null,
-        dur:()=> secOf(diaIn, 0.2), fire:()=> setDayFilter([i]) });
+        dur:()=> secOf(diaIn, 0.2), fire:()=>{ pruneBranchAppear(); setDayFilter([i]); } });
     });
     steps.push({ key:"todos", marker:"Todo", dur:()=> secOf(todosIn, 0.2),
-      fire:()=> clearSequencerFilters() });
+      fire:()=>{ pruneBranchAppear(); clearSequencerFilters(); } });
     for(let c = 0; c < 4; c++){
       steps.push({ key:"combo"+c, marker:c === 0 ? "Combos" : null,
         dur:()=> secOf(comboIn, 0.2), fire:fireCombo });
     }
     steps.push({ key:"datos", marker:"Datos", dur:()=> secOf(todosIn, 0.2),
-      fire:()=> clearSequencerFilters() });
+      fire:()=>{ pruneBranchAppear(); clearSequencerFilters(); } });
+    // pausa fija: se queda 2s más con el árbol completo antes de terminar
+    steps.push({ key:"pausaFinal", marker:null, dur:()=> 2, fire:()=>{} });
     return steps;
   }
   let STEPS = buildSteps();
@@ -1705,34 +1750,19 @@ window.weekPlay = { active:false, reset(){} };
     headEl.style.left = (frac * 100) + "%";
     clockEl.textContent = elapsed.toFixed(1) + " / " + total.toFixed(1) + " s";
   }
-  function renderMarkers(){
-    const total = totalDur();
-    markersEl.innerHTML = "";
-    let acc = 0;
-    STEPS.forEach((st)=>{
-      if(st.marker){
-        const m = document.createElement("div");
-        m.className = "vp-marker";
-        m.style.left = (total > 0 ? acc / total * 100 : 0) + "%";
-        m.textContent = st.marker;
-        markersEl.appendChild(m);
-      }
-      acc += st.dur();
-    });
-    const end = document.createElement("div");
-    end.className = "vp-marker";
-    end.style.left = "100%";
-    end.textContent = "Fin";
-    markersEl.appendChild(end);
-  }
-
   function frame(now){
     const dt = Math.max(0, (now - lastT) / 1000);
     lastT = now;
     elapsed = Math.max(0, Math.min(totalDur(), elapsed + dt));
+    setDescProgress(elapsed / bajadaDur()); // paso "Bajada", continuo (se clampea solo)
     fireUpTo(elapsed);
     renderTimeline();
-    if(elapsed >= totalDur()){ playing = false; rafId = null; syncButtons(); return; }
+    if(elapsed >= totalDur()){
+      playing = false; rafId = null; syncButtons();
+      // fin de la secuencia de la viz -> cierra y guarda la grabación (si hay)
+      if(window.squareRecorder) window.squareRecorder.finish();
+      return;
+    }
     rafId = requestAnimationFrame(frame);
   }
   function play(fromZero){
@@ -1759,6 +1789,7 @@ window.weekPlay = { active:false, reset(){} };
     usedComboSigs = [];
     renderState.started = false;
     clearSequencerFilters();
+    if(descEl) descEl.textContent = DESC_FULL; // vuelve al estado de reposo de la bajada
     STEPS = buildSteps();
     renderTimeline();
     syncButtons();
@@ -1771,22 +1802,321 @@ window.weekPlay = { active:false, reset(){} };
     pauseBtn.textContent = paused ? "Seguir" : "Pausa";
   }
 
-  startBtn.addEventListener("click", ()=> play(true));
+  // "Comenzar video": si el grabador está disponible, primero pide compartir
+  // la pestaña (una vez) y sólo arranca la secuencia si el usuario acepta;
+  // así la grabación cubre desde la primera letra de la bajada hasta el
+  // final de la viz, las dos diapos de corrido.
+  async function onStartClick(){
+    if(window.squareRecorder){
+      const ok = await window.squareRecorder.begin();
+      if(!ok) return; // canceló el permiso -> no arranca
+    }
+    play(true);
+  }
+  startBtn.addEventListener("click", onStartClick);
   pauseBtn.addEventListener("click", ()=> playing ? pause() : play(false));
-  resetBtn.addEventListener("click", hardReset);
-  [crecerIn, diaIn, todosIn, comboIn].forEach(inp=>{
+  resetBtn.addEventListener("click", ()=>{
+    if(window.squareRecorder) window.squareRecorder.abort();
+    hardReset();
+  });
+  [bajadaIn, crecerIn, diaIn, todosIn, comboIn].forEach(inp=>{
     inp.addEventListener("input", ()=>{
       STEPS = buildSteps();
-      renderMarkers();
       if(!playing) renderTimeline();
     });
   });
   // (los clicks en #weekBtns son filtro de semana, INDEPENDIENTE de este panel
   //  -- se manejan junto al filtro de días, ver "selectedWeeks")
 
-  renderMarkers();
   renderTimeline();
   syncButtons();
+})();
+
+/* ---------------------------------------------------------------
+   DESCARGAR — exporta la visualización cuadrada (el marco completo: título,
+   leyenda y árbol) como PNG de exactamente 1920x1920. Usa html2canvas para
+   rasterizar .square-box y después lo re-escala a 1920 en un canvas final,
+   así el tamaño de salida no depende del tamaño en pantalla.
+------------------------------------------------------------------ */
+(function(){
+  const btn = document.getElementById("sqDownload");
+  if(!btn) return;
+  btn.addEventListener("click", async ()=>{
+    const box = document.querySelector(".square-box");
+    if(!box || typeof html2canvas !== "function"){
+      alert("No se pudo cargar el exportador (¿sin conexión?).");
+      return;
+    }
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Generando…";
+    try{
+      const rect = box.getBoundingClientRect();
+      const sidePx = Math.min(rect.width, rect.height);
+      const shot = await html2canvas(box, {
+        backgroundColor: getComputedStyle(document.body).backgroundColor || "#f2ecdd",
+        scale: 1920 / sidePx,
+        logging: false,
+        useCORS: true
+      });
+      const out = document.createElement("canvas");
+      out.width = out.height = 1920;
+      const ctx = out.getContext("2d");
+      ctx.fillStyle = "#f2ecdd";
+      ctx.fillRect(0, 0, 1920, 1920);
+      // centra por si html2canvas devolvió una relación no exactamente 1:1
+      const s = Math.min(1920 / shot.width, 1920 / shot.height);
+      const w = shot.width * s, h = shot.height * s;
+      ctx.drawImage(shot, (1920 - w) / 2, (1920 - h) / 2, w, h);
+      const a = document.createElement("a");
+      a.download = "sublimacion-poetica-1920x1920.png";
+      a.href = out.toDataURL("image/png");
+      a.click();
+    }catch(err){
+      console.error(err);
+      alert("No se pudo generar la imagen.");
+    }finally{
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  });
+})();
+
+/* ---------------------------------------------------------------
+   GRABADOR DE VIDEO — al apretar "Comenzar video" en la primera diapo, pide
+   compartir la pestaña (una sola vez) y a partir de ahí recorta y graba SÓLO
+   el recuadro .square-box (título + leyenda + árbol) mientras corren las dos
+   diapos de corrido. Al terminar la secuencia de la viz descarga un .webm.
+
+   Por qué así: MediaRecorder sólo captura un canvas, no el DOM. Con
+   getDisplayMedia se capturan DOM + canvas juntos tal cual se ven; después
+   cada frame se recorta la región de la caja y se compone en un canvas
+   cuadrado de 1080x1080 que es lo que se graba.
+
+   API global: window.squareRecorder.begin()  -> pide permiso, arranca (async, bool)
+               window.squareRecorder.finish() -> corta y guarda el .webm
+               window.squareRecorder.abort()  -> corta y descarta
+------------------------------------------------------------------ */
+(function(){
+  const OUT = 1920; // lado del video cuadrado de salida (igual que el PNG)
+  let stream = null, video = null, rec = null, chunks = [];
+  let tickId = null, running = false, safetyT = null, indicator = null;
+
+  function pickMime(){
+    const opts = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+    for(const m of opts){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+    }
+    return "";
+  }
+
+  function showIndicator(on){
+    if(on){
+      if(!indicator){
+        indicator = document.createElement("div");
+        indicator.id = "recDot";
+        indicator.textContent = "● REC";
+        document.body.appendChild(indicator);
+      }
+      indicator.style.display = "block";
+    } else if(indicator){
+      indicator.style.display = "none";
+    }
+  }
+
+  function cleanup(){
+    running = false;
+    if(tickId) cancelAnimationFrame(tickId);
+    tickId = null;
+    if(safetyT) clearTimeout(safetyT);
+    safetyT = null;
+    if(stream){ stream.getTracks().forEach(t=> t.stop()); stream = null; }
+    if(video){ video.srcObject = null; video.remove(); video = null; }
+    rec = null;
+    showIndicator(false);
+  }
+
+  function save(){
+    if(!chunks.length) return;
+    const type = (rec && rec.mimeType) || "video/webm";
+    const ext = type.indexOf("mp4") !== -1 ? "mp4" : "webm";
+    const blob = new Blob(chunks, { type });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "sublimacion-poetica." + ext;
+    a.click();
+    setTimeout(()=> URL.revokeObjectURL(a.href), 15000);
+  }
+
+  async function begin(){
+    if(running) return true;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.MediaRecorder){
+      alert("Este navegador no permite grabar. Probá en Chrome, o grabá la pantalla a mano.");
+      return false;
+    }
+    try{
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        // pedir un ancho/alto "ideal" grande hace que Chrome renderice la
+        // pestaña a mayor resolución para la captura (no es un simple zoom de
+        // pantalla, es tab capture: redibuja el DOM más nítido), aunque la
+        // ventana en pantalla sea más chica -- así el .webm sale más nítido.
+        video: { frameRate: 30, width: { ideal: 2560 }, height: { ideal: 2560 } },
+        audio: false,
+        preferCurrentTab: true            // Chrome: sugiere "Esta pestaña"
+      });
+    }catch(err){
+      return false; // el usuario canceló el permiso
+    }
+    // si el usuario corta el compartir desde la barra del navegador
+    stream.getVideoTracks()[0].addEventListener("ended", ()=>{ finish(); });
+
+    video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.srcObject = stream;
+    // fuera de vista pero renderizado (display:none dejaría el frame congelado)
+    video.style.cssText = "position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none";
+    document.body.appendChild(video);
+    await video.play().catch(()=>{});
+
+    const box = document.querySelector(".square-box");
+    const out = document.createElement("canvas");
+    out.width = out.height = OUT;
+    const ctx = out.getContext("2d");
+    ctx.fillStyle = "#f2ecdd";
+
+    const tick = ()=>{
+      if(!running) return;
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if(vw && vh){
+        // la pestaña capturada mapea 1:1 con el viewport (salvo escala por DPR)
+        const sX = vw / window.innerWidth, sY = vh / window.innerHeight;
+        const r = box.getBoundingClientRect();
+        let sx = r.left * sX, sy = r.top * sY;
+        let sw = r.width * sX, sh = r.height * sY;
+        // recorta al área realmente capturada por si la caja se sale un poco
+        sx = Math.max(0, Math.min(sx, vw)); sy = Math.max(0, Math.min(sy, vh));
+        sw = Math.max(1, Math.min(sw, vw - sx)); sh = Math.max(1, Math.min(sh, vh - sy));
+        ctx.fillRect(0, 0, OUT, OUT);
+        try{ ctx.drawImage(video, sx, sy, sw, sh, 0, 0, OUT, OUT); }catch(e){}
+      }
+      tickId = requestAnimationFrame(tick);
+    };
+
+    running = true;
+    tick();
+
+    chunks = [];
+    const mime = pickMime();
+    rec = new MediaRecorder(out.captureStream(30), mime ? { mimeType: mime, videoBitsPerSecond: 16000000 } : undefined);
+    rec.ondataavailable = (e)=>{ if(e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = ()=>{ save(); cleanup(); };
+    rec.start();
+
+    showIndicator(true);
+    // corte de seguridad por si la cadena de diapos se interrumpe
+    safetyT = setTimeout(()=> finish(), 4 * 60 * 1000);
+    return true;
+  }
+
+  function finish(){
+    if(!running && !rec) return;
+    running = false;
+    if(tickId) cancelAnimationFrame(tickId);
+    tickId = null;
+    if(rec && rec.state !== "inactive"){
+      // deja pasar un frame para no cortar el último instante
+      setTimeout(()=>{ try{ rec.stop(); }catch(e){ cleanup(); } }, 120);
+    } else {
+      cleanup();
+    }
+  }
+
+  function abort(){
+    if(!running && !rec) return;
+    chunks = [];                 // descartar
+    if(rec && rec.state !== "inactive"){
+      rec.onstop = cleanup;
+      try{ rec.stop(); }catch(e){ cleanup(); }
+    } else {
+      cleanup();
+    }
+  }
+
+  window.squareRecorder = { begin, finish, abort };
+})();
+
+/* ---------------------------------------------------------------
+   AYUDA / SIMBOLOGÍA — botón "Cómo leer el árbol" (#helpBtn): abre una
+   ventana con la ilustración de ejemplo (markup fijo en el HTML, todo
+   explicado con llamados pegados a cada rama, sin texto aparte). La fila de
+   puntos de color por día se dibuja DENTRO del propio SVG (no como lista
+   HTML aparte), armada a partir de DAYS/DAY_COLORS para que nunca quede
+   desactualizada si se cambia algún color de la paleta.
+------------------------------------------------------------------ */
+(function(){
+  const btn     = document.getElementById("helpBtn");
+  const overlay = document.getElementById("helpOverlay");
+  const closeBtn= document.getElementById("helpClose");
+  const dlBtn   = document.getElementById("helpDownload");
+  const dotsG   = document.getElementById("helpDayDots");
+  if(!btn || !overlay) return;
+
+  const DAY_ABBR = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"];
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  if(dotsG){
+    // centrados en el eje del tronco (x=160, ver <polygon> del tronco en el
+    // markup), no arrancando desde un borde -- así la fila queda alineada
+    // con el árbol en vez de correrse hacia la derecha
+    const trunkX = 160, spacing = 62, y = 486;
+    const midIdx = (DAYS.length - 1) / 2;
+    DAYS.forEach((d, i)=>{
+      const cx = trunkX + (i - midIdx) * spacing;
+      const c = document.createElementNS(SVG_NS, "circle");
+      c.setAttribute("cx", cx); c.setAttribute("cy", y); c.setAttribute("r", 6);
+      c.setAttribute("fill", DAY_COLORS[i]);
+      dotsG.appendChild(c);
+      const t = document.createElementNS(SVG_NS, "text");
+      t.setAttribute("x", cx + 11); t.setAttribute("y", y + 4);
+      t.setAttribute("font-family", "Inter, sans-serif");
+      t.setAttribute("font-size", "11");
+      t.setAttribute("fill", "#756c5e");
+      t.textContent = DAY_ABBR[i];
+      dotsG.appendChild(t);
+    });
+  }
+
+  const open  = ()=> overlay.classList.add("open");
+  const close = ()=> overlay.classList.remove("open");
+  btn.addEventListener("click", open);
+  closeBtn.addEventListener("click", close);
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+  document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") close(); });
+
+  // "Descargar PNG": rasteriza la ilustración con html2canvas (respeta las
+  // tipografías ya cargadas en la página) y baja un PNG nítido (escala x3).
+  if(dlBtn){
+    dlBtn.addEventListener("click", async ()=>{
+      const illo = document.querySelector(".help-illustration");
+      if(!illo || typeof html2canvas !== "function") return;
+      const label = dlBtn.textContent;
+      dlBtn.disabled = true;
+      dlBtn.textContent = "Generando…";
+      try{
+        const shot = await html2canvas(illo, { backgroundColor:"#f8f4ea", scale:3, logging:false });
+        const a = document.createElement("a");
+        a.download = "como-leer-el-arbol.png";
+        a.href = shot.toDataURL("image/png");
+        a.click();
+      }catch(err){
+        console.error(err);
+        alert("No se pudo generar la imagen.");
+      }finally{
+        dlBtn.disabled = false;
+        dlBtn.textContent = label;
+      }
+    });
+  }
 })();
 
 /* ---------------------------------------------------------------
