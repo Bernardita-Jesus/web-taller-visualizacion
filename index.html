@@ -103,6 +103,10 @@
     line-height:1.5;
     color:var(--muted);
   }
+  /* la bajada ("Este proyecto nace...") sólo se ve en el formato cuadrado
+     (portada); en el formato web horizontal, donde .intro-desc vive dentro
+     de <header>, va oculta -- ahí sólo queda la pregunta */
+  header .intro-desc{ display:none; }
   .intro strong{
     display:block;
     font-family:'Fraunces',serif;
@@ -999,7 +1003,7 @@
       <p class="row-title">Presencia del registro</p>
       <!-- las dos opciones comparten el mismo tronco (misma x, svgs pegados) -->
       <div class="sym-opt-row">
-        <svg class="sym-hit" data-var="escrita:1" viewBox="0 0 48 20">
+        <svg class="sym-hit" data-var="escrita:1" width="48" height="20" viewBox="0 0 48 20">
           <rect x="0" y="0" width="48" height="20" rx="4" fill="transparent"/>
           <line x1="24" y1="0" x2="24" y2="20" stroke="currentColor" stroke-width="3"/>
           <line x1="24" y1="9" x2="46" y2="3" stroke="currentColor" stroke-width="2"/>
@@ -1007,7 +1011,7 @@
         <p><strong>Derecha</strong>: escrito.</p>
       </div>
       <div class="sym-opt-row">
-        <svg class="sym-hit" data-var="escrita:0" viewBox="0 0 48 20">
+        <svg class="sym-hit" data-var="escrita:0" width="48" height="20" viewBox="0 0 48 20">
           <rect x="0" y="0" width="48" height="20" rx="4" fill="transparent"/>
           <line x1="24" y1="0" x2="24" y2="20" stroke="currentColor" stroke-width="3"/>
           <line x1="24" y1="11" x2="2" y2="17" stroke="currentColor" stroke-width="2"/>
@@ -1019,14 +1023,14 @@
     <div class="symbol-row">
       <p class="row-title">Estímulo sensorial</p>
       <div class="sym-opt-row">
-        <svg class="sym-hit" data-var="estimulo:1" viewBox="0 0 44 18">
+        <svg class="sym-hit" data-var="estimulo:1" width="44" height="18" viewBox="0 0 44 18">
           <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
           <line x1="4" y1="9" x2="40" y2="9" stroke="currentColor" stroke-width="2" stroke-dasharray="6 5"/>
         </svg>
         <p><span id="rowEstimuloTarget"><strong>Segmentada</strong>: con estímulo.</span></p>
       </div>
       <div class="sym-opt-row">
-        <svg class="sym-hit" data-var="estimulo:0" viewBox="0 0 44 18">
+        <svg class="sym-hit" data-var="estimulo:0" width="44" height="18" viewBox="0 0 44 18">
           <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
           <line x1="4" y1="9" x2="40" y2="9" stroke="currentColor" stroke-width="2"/>
         </svg>
@@ -1037,14 +1041,14 @@
     <div class="symbol-row">
       <p class="row-title">Sentimiento evocado</p>
       <div class="sym-opt-row">
-        <svg class="sym-hit" data-var="sentimiento:lisa" viewBox="0 0 44 18">
+        <svg class="sym-hit" data-var="sentimiento:lisa" width="44" height="18" viewBox="0 0 44 18">
           <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
           <line x1="4" y1="9" x2="40" y2="9" stroke="currentColor" stroke-width="2"/>
         </svg>
         <p><strong>Lisa</strong>: alegre.</p>
       </div>
       <div class="sym-opt-row">
-        <svg class="sym-hit" data-var="sentimiento:ond" viewBox="0 0 44 18">
+        <svg class="sym-hit" data-var="sentimiento:ond" width="44" height="18" viewBox="0 0 44 18">
           <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
           <path d="M4,9 Q10,3 16,9 T28,9 T40,9" stroke="currentColor" fill="none" stroke-width="2"/>
         </svg>
@@ -1055,14 +1059,14 @@
     <div class="symbol-row">
       <p class="row-title">Magnitud de la pulsión</p>
       <div class="sym-opt-row">
-        <svg class="sym-hit" data-var="magnitud:0" viewBox="0 0 44 18">
+        <svg class="sym-hit" data-var="magnitud:0" width="44" height="18" viewBox="0 0 44 18">
           <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
           <line x1="13" y1="9" x2="31" y2="9" stroke="currentColor" stroke-width="2"/>
         </svg>
         <p><strong>Corta</strong>: normal.</p>
       </div>
       <div class="sym-opt-row">
-        <svg class="sym-hit" data-var="magnitud:1" viewBox="0 0 44 18">
+        <svg class="sym-hit" data-var="magnitud:1" width="44" height="18" viewBox="0 0 44 18">
           <rect x="0" y="0" width="44" height="18" rx="4" fill="transparent"/>
           <line x1="4" y1="9" x2="40" y2="9" stroke="currentColor" stroke-width="2"/>
         </svg>
@@ -1158,34 +1162,34 @@
       <text x="91" y="402" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5" text-anchor="end">rama a la izquierda</text>
       <!-- fila 2: estímulo -- continua vs segmentada -->
       <circle cx="170.5" cy="310" r="3" fill="#2b2620"/>
-      <path d="M170.5,310 L326,270" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <path d="M170.5,310 L302.7,276" stroke="#2b2620" stroke-width="2" fill="none"/>
       <circle cx="169.6" cy="280" r="3" fill="#2b2620"/>
-      <path d="M169.6,280 L325.1,240" stroke="#2b2620" stroke-width="2" stroke-dasharray="8 6" fill="none"/>
-      <text x="332" y="266" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Continua</text>
-      <text x="332" y="282" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">sin estímulo sensorial</text>
-      <text x="331" y="236" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Segmentada</text>
-      <text x="331" y="252" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">con estímulo sensorial</text>
+      <path d="M169.6,280 L301.8,246" stroke="#2b2620" stroke-width="2" stroke-dasharray="8 6" fill="none"/>
+      <text x="309" y="272" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Continua</text>
+      <text x="309" y="288" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">sin estímulo sensorial</text>
+      <text x="308" y="242" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Segmentada</text>
+      <text x="308" y="258" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">con estímulo sensorial</text>
       <!-- fila 3: sentimiento -- lisa vs ondulada (del lado izquierdo) -->
       <circle cx="151.9" cy="220" r="3" fill="#2b2620"/>
-      <path d="M151.9,220 L-3.6,180" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <path d="M151.9,220 L19.7,186" stroke="#2b2620" stroke-width="2" fill="none"/>
       <circle cx="152.8" cy="190" r="3" fill="#2b2620"/>
       <!-- misma cadencia que la rama ondulada de la barra lateral (curva
            corrugada de varias ondas chicas), espejada hacia la izquierda y
-           estirada al mismo largo que "Larga" -->
-      <path d="M152.8,190 Q145,182 137,186 T122,182 T106,178 T91,174 T75,170 T59,166 T44,162 T28,158 T13,154 T-3,150" stroke="#2b2620" stroke-width="2" fill="none"/>
-      <text x="-9" y="176" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600" text-anchor="end">Lisa</text>
-      <text x="-9" y="192" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5" text-anchor="end">alegre</text>
-      <text x="-9" y="146" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600" text-anchor="end">Ondulada</text>
-      <text x="-9" y="162" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5" text-anchor="end">melancólico</text>
+           un poco más corta que "Larga" -->
+      <path d="M152.8,190 Q146.2,183.2 139.4,186.6 T126.6,183.2 T113,179.8 T100.3,176.4 T86.7,173 T73.1,169.6 T60.3,166.2 T46.7,162.8 T34,159.4 T20.4,156" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <text x="14" y="182" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600" text-anchor="end">Lisa</text>
+      <text x="14" y="198" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5" text-anchor="end">alegre</text>
+      <text x="14" y="152" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600" text-anchor="end">Ondulada</text>
+      <text x="14" y="168" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5" text-anchor="end">melancólico</text>
       <!-- fila 4: magnitud -- corta vs larga -->
       <circle cx="165.4" cy="130" r="3" fill="#2b2620"/>
       <path d="M165.4,130 L215,112" stroke="#2b2620" stroke-width="2" fill="none"/>
       <circle cx="164.5" cy="100" r="3" fill="#2b2620"/>
-      <path d="M164.5,100 L320,60" stroke="#2b2620" stroke-width="2" fill="none"/>
+      <path d="M164.5,100 L296.7,66" stroke="#2b2620" stroke-width="2" fill="none"/>
       <text x="221" y="108" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Corta</text>
       <text x="221" y="124" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">magnitud normal</text>
-      <text x="326" y="56" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Larga</text>
-      <text x="326" y="72" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">mayor magnitud</text>
+      <text x="303" y="62" fill="#2b2620" font-family="Fraunces, serif" font-size="12.5" font-weight="600">Larga</text>
+      <text x="303" y="78" fill="#756c5e" font-family="Inter, sans-serif" font-size="10.5">mayor magnitud</text>
       <!-- fila de colores por día, generada por JS a partir de DAYS/DAY_COLORS -->
       <g id="helpDayDots"></g>
     </svg>
@@ -1655,21 +1659,28 @@ window.weekPlay = { active:false, reset(){} };
     return out;
   }
 
-  // ¿la combinación (semanas + días + opción de simbología) deja al menos una
-  // rama visible? -- para no mostrar nunca un árbol vacío en el video.
-  function comboHasResult(weeks, days, vars){
+  // por tema práctico, una combinación al azar (semanas + días + opción de
+  // simbología) tiene que dejar al menos MIN_COMBO_RESULTS ramas visibles --
+  // si no, el árbol queda demasiado pelado para que se entienda el filtro.
+  const MIN_COMBO_RESULTS = 3;
+  function countComboResults(weeks, days, vars){
     const wset = new Set(weeks), dset = new Set(days), vset = new Set(vars);
     const dim = vars[0].split(":")[0]; // randomVars devuelve una sola dimensión
-    return PULSIONES.some(e =>
-      wset.has(e.week || 1) && dset.has(e.day) && vset.has(varTokenOf(e, dim))
-    );
+    let count = 0;
+    for(const e of PULSIONES){
+      if(wset.has(e.week || 1) && dset.has(e.day) && vset.has(varTokenOf(e, dim))) count++;
+    }
+    return count;
+  }
+  function comboHasResult(weeks, days, vars){
+    return countComboResults(weeks, days, vars) >= MIN_COMBO_RESULTS;
   }
 
   // las cuatro combinaciones al azar del final tienen que ser distintas entre
   // sí. Se generan en el momento de dispararse (así cambian en cada corrida)
   // pero recordando las ya usadas en ESTA corrida; hardReset limpia la lista.
   // Cada combinación cruza semanas + días + una opción de simbología, y NUNCA
-  // puede quedar sin ninguna rama como resultado.
+  // puede quedar con menos de MIN_COMBO_RESULTS ramas como resultado.
   let usedComboSigs = [];
   function fireCombo(){
     let weeks, days, vars, sig, guard = 0;
@@ -1679,14 +1690,21 @@ window.weekPlay = { active:false, reset(){} };
       days = randomDays();
       vars = randomVars();
       sig = srt(weeks) + "#" + srt(days) + "|" + vars.join(",");
-    } while((usedComboSigs.indexOf(sig) !== -1 || !comboHasResult(weeks, days, vars)) && guard++ < 120);
-    // por si el azar no encontró una válida: se arma a partir de una pulsión real
+    } while((usedComboSigs.indexOf(sig) !== -1 || !comboHasResult(weeks, days, vars)) && guard++ < 250);
+    // por si el azar no encontró una combinación con suficientes ramas: se
+    // elige el token de simbología con más pulsiones y se arman semanas/días
+    // a partir de TODAS las que lo cumplen, así el mínimo queda garantizado
+    // (salvo que ni siquiera ese token alcance el mínimo en todo el dataset).
     if(!comboHasResult(weeks, days, vars)){
-      const e = PULSIONES[randInt(PULSIONES.length)];
-      const dim = ["escrita","estimulo","sentimiento","magnitud"][randInt(4)];
-      weeks = [e.week || 1];
-      days = [e.day];
-      vars = [varTokenOf(e, dim)];
+      let best = [], bestToken = VAR_TOKENS[0];
+      VAR_TOKENS.slice().sort(()=> Math.random() - 0.5).forEach(tk=>{
+        const dim = tk.split(":")[0];
+        const matches = PULSIONES.filter(e=> varTokenOf(e, dim) === tk);
+        if(matches.length > best.length){ best = matches; bestToken = tk; }
+      });
+      weeks = best.length ? Array.from(new Set(best.map(e=> e.week || 1))) : [1, 2, 3];
+      days = best.length ? Array.from(new Set(best.map(e=> e.day))) : [0, 1, 2, 3, 4, 5, 6];
+      vars = [bestToken];
       sig = srt(weeks) + "#" + srt(days) + "|" + vars.join(",");
     }
     usedComboSigs.push(sig);
@@ -1874,7 +1892,7 @@ window.weekPlay = { active:false, reset(){} };
       a.click();
     }catch(err){
       console.error(err);
-      alert("No se pudo generar la imagen.");
+      alert("No se pudo generar la imagen" + (err && err.message ? ": " + err.message : "") + " (mirá la consola, F12, para más detalle).");
     }finally{
       btn.disabled = false;
       btn.textContent = label;
@@ -2093,24 +2111,139 @@ window.weekPlay = { active:false, reset(){} };
   overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
   document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") close(); });
 
-  // "Descargar PNG": rasteriza la ilustración con html2canvas (respeta las
-  // tipografías ya cargadas en la página) y baja un PNG nítido (escala x3).
+  // "Descargar PNG": las dos formas de pedirle al navegador que decodifique
+  // el SVG como imagen (blob: y data URI) fallaban, así que se abandona esa
+  // vía por completo. En cambio, la ilustración se REDIBUJA a mano en un
+  // canvas leyendo directo los atributos de cada <polygon>/<line>/<circle>/
+  // <path>/<text> del propio SVG (un mini intérprete de las formas que usa
+  // esta ilustración) -- no depende de que el navegador sepa rasterizar SVG
+  // como imagen, y de paso usa las tipografías reales de la página (no una
+  // de reemplazo) porque dibuja con el mismo <canvas> ya en el documento.
+  function num(v, d){ const n = parseFloat(v); return isNaN(n) ? d : n; }
+
+  // camino compatible con los comandos que usa esta ilustración: M, L, Q, T
+  // (todos absolutos); T repite el reflejo del control anterior, como en SVG.
+  function drawPath(ctx, d, style){
+    const tokens = d.match(/[MLQT][^MLQT]*/gi);
+    if(!tokens) return;
+    ctx.beginPath();
+    let cx = 0, cy = 0, lastQCtrl = null;
+    tokens.forEach(tok=>{
+      const cmd = tok[0];
+      const nums = tok.slice(1).trim().split(/[\s,]+/).filter(Boolean).map(Number);
+      if(cmd === "M"){ cx = nums[0]; cy = nums[1]; ctx.moveTo(cx, cy); }
+      else if(cmd === "L"){ cx = nums[0]; cy = nums[1]; ctx.lineTo(cx, cy); }
+      else if(cmd === "Q"){
+        ctx.quadraticCurveTo(nums[0], nums[1], nums[2], nums[3]);
+        lastQCtrl = { x: nums[0], y: nums[1] };
+        cx = nums[2]; cy = nums[3];
+      } else if(cmd === "T"){
+        const qx = lastQCtrl ? 2 * cx - lastQCtrl.x : cx;
+        const qy = lastQCtrl ? 2 * cy - lastQCtrl.y : cy;
+        ctx.quadraticCurveTo(qx, qy, nums[0], nums[1]);
+        lastQCtrl = { x: qx, y: qy };
+        cx = nums[0]; cy = nums[1];
+      }
+    });
+    if(style.fill && style.fill !== "none"){ ctx.fillStyle = style.fill; ctx.fill(); }
+    if(style.stroke){
+      ctx.strokeStyle = style.stroke;
+      ctx.lineWidth = style.strokeWidth || 1;
+      ctx.setLineDash(style.dash || []);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // combina los atributos propios del elemento con los heredados de su <g>
+  // padre (fill/stroke/font/etc -- igual que la herencia de presentación en SVG)
+  function styleFrom(el, inherited){
+    return {
+      fill: el.getAttribute("fill") || inherited.fill,
+      stroke: el.getAttribute("stroke") || inherited.stroke,
+      strokeWidth: num(el.getAttribute("stroke-width"), inherited.strokeWidth),
+      dash: el.getAttribute("stroke-dasharray")
+        ? el.getAttribute("stroke-dasharray").trim().split(/[\s,]+/).map(Number)
+        : inherited.dash,
+      fontFamily: el.getAttribute("font-family") || inherited.fontFamily,
+      fontSize: num(el.getAttribute("font-size"), inherited.fontSize),
+      fontWeight: el.getAttribute("font-weight") || inherited.fontWeight,
+      textAnchor: el.getAttribute("text-anchor") || inherited.textAnchor
+    };
+  }
+
+  function drawIllustration(ctx, svgEl){
+    function walk(parent, inherited){
+      Array.from(parent.children).forEach(el=>{
+        const tag = el.tagName.toLowerCase();
+        const style = styleFrom(el, inherited);
+        if(tag === "g"){ walk(el, style); return; }
+        if(tag === "polygon"){
+          const pts = (el.getAttribute("points") || "").trim().split(/\s+/).map(p=> p.split(",").map(Number));
+          if(!pts.length) return;
+          ctx.beginPath();
+          ctx.moveTo(pts[0][0], pts[0][1]);
+          pts.slice(1).forEach(p=> ctx.lineTo(p[0], p[1]));
+          ctx.closePath();
+          ctx.fillStyle = style.fill || "#000";
+          ctx.fill();
+        } else if(tag === "line"){
+          ctx.beginPath();
+          ctx.moveTo(num(el.getAttribute("x1"), 0), num(el.getAttribute("y1"), 0));
+          ctx.lineTo(num(el.getAttribute("x2"), 0), num(el.getAttribute("y2"), 0));
+          ctx.strokeStyle = style.stroke || "#000";
+          ctx.lineWidth = style.strokeWidth || 1;
+          ctx.setLineDash(style.dash || []);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else if(tag === "circle"){
+          ctx.beginPath();
+          ctx.arc(num(el.getAttribute("cx"), 0), num(el.getAttribute("cy"), 0), num(el.getAttribute("r"), 0), 0, Math.PI * 2);
+          ctx.fillStyle = style.fill || "#000";
+          ctx.fill();
+        } else if(tag === "path"){
+          drawPath(ctx, el.getAttribute("d") || "", style);
+        } else if(tag === "text"){
+          ctx.font = (style.fontWeight || "400") + " " + (style.fontSize || 12) + "px " + (style.fontFamily || "sans-serif");
+          ctx.fillStyle = style.fill || "#000";
+          ctx.textAlign = style.textAnchor === "end" ? "end" : "start";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillText(el.textContent || "", num(el.getAttribute("x"), 0), num(el.getAttribute("y"), 0));
+        }
+      });
+    }
+    walk(svgEl, { fill:null, stroke:null, strokeWidth:1, dash:[], fontFamily:"sans-serif", fontSize:12, fontWeight:"400", textAnchor:"start" });
+  }
+
   if(dlBtn){
-    dlBtn.addEventListener("click", async ()=>{
+    dlBtn.addEventListener("click", ()=>{
       const illo = document.querySelector(".help-illustration");
-      if(!illo || typeof html2canvas !== "function") return;
+      if(!illo) return;
       const label = dlBtn.textContent;
       dlBtn.disabled = true;
       dlBtn.textContent = "Generando…";
       try{
-        const shot = await html2canvas(illo, { backgroundColor:"#f8f4ea", scale:3, logging:false });
+        const vb = illo.viewBox && illo.viewBox.baseVal;
+        const vbX = (vb && vb.x) || 0, vbY = (vb && vb.y) || 0;
+        const w = (vb && vb.width) || illo.clientWidth || 730;
+        const h = (vb && vb.height) || illo.clientHeight || 505;
+        const scale = 3;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#f2ecdd";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.scale(scale, scale);
+        ctx.translate(-vbX, -vbY);
+        drawIllustration(ctx, illo);
         const a = document.createElement("a");
         a.download = "como-leer-el-arbol.png";
-        a.href = shot.toDataURL("image/png");
+        a.href = canvas.toDataURL("image/png");
         a.click();
       }catch(err){
         console.error(err);
-        alert("No se pudo generar la imagen.");
+        alert("No se pudo generar la imagen" + (err && err.message ? ": " + err.message : "") + " (mirá la consola, F12, para más detalle).");
       }finally{
         dlBtn.disabled = false;
         dlBtn.textContent = label;
