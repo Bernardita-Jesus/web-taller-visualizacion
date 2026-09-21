@@ -7,8 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-<!-- para exportar la visualización cuadrada como PNG 1920x1920 (ver "DESCARGAR") -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
     --bg: #f2ecdd;
@@ -24,66 +22,66 @@
     font-family:'Inter',sans-serif;
   }
   body{ display:flex; flex-direction:column; height:100vh; }
+  /* formato web horizontal: 3 columnas lado a lado en vez de header+layout
+     apilados (eso es el formato cuadrado, que oculta header/.layout enteros
+     y usa su propio #squareStage) */
+  body:not(.square-mode){ flex-direction:row; }
 
   /* =====================================================================
      MAPA DE LA PÁGINA  (nombres para entendernos)
 
-     body (100vh, sin scroll) = header + .layout apilados verticalmente
+     body (100vh, sin scroll) = <header> + .layout lado a lado (3 columnas)
 
-     1) CUADRADO HORIZONTAL  -> <header>
-        - ancho: 100% del viewport
-        - alto: FIJO 124px (height:124px), padding 16px arriba/abajo.
-          Fijo a propósito: cambiar el tamaño del título NO mueve la barra
-          lateral ni la diagramación. Título Fraunces 42px en 2 líneas.
-        - 3 columnas: [1fr título izq] [auto bajada centrada, máx 680px] [1fr controles der]
-        - separador: border-bottom 1px  (esta es "la línea de arriba"
-          del cuadrado "Cómo leer las ramas")
+     1) PANEL IZQUIERDO -> <header>
+        - ancho: FIJO 340px. Fijo a propósito, igual que antes: cambiar el
+          tamaño del título no mueve nada más.
+        - de arriba hacia abajo: título (Fraunces 42px, 2 líneas) -> bajada/
+          pregunta (.intro) -> controles (.controls: botón "Renderizar
+          crecimiento" + créditos/mode-row, ocultos en este formato) ->
+          "Color según el día" (.day-group, ver JS toSquareMode/toRectMode:
+          viaja a la barra de símbolos cuando se pasa a formato cuadrado).
+        - separador: border-right 1px
 
-     2) BARRA LATERAL  -> <aside id="symbolLegend">
-        - ancho: 236px fijo (ancho útil interno 196px = 236 - 40 de padding)
-        - alto: 100vh - alto del header
-        - padding 14px 20px; línea divisoria a la derecha dibujada como
-          .layout::after (8px separada del borde de la barra) en vez de
-          border-right, para poder correrla sin tocar el ancho de la barra
-        - se parte en DOS mitades de igual alto (flex:1 1 0 cada una):
-
-        2a) CUADRADO "CÓMO LEER LAS RAMAS" + SIMBOLOGÍAS  -> .symbol-group
-            - mitad superior de la barra
-            - h2 fijo arriba, a 14px de la línea de arriba (= padding de la barra)
-            - .symbol-rows: 4 filas de simbología centradas en vertical, gap 13px
-
-        2b) CUADRADO "COLOR SEGÚN EL DÍA"  -> .day-group
-            - mitad inferior, mismo ancho y alto que 2a
-            - sin línea divisoria (el border-top va en none en square-mode)
-            - h3 a 14px del bloque de arriba (padding-top:14px) + 20px hasta la lista
-            - #dayLegend: 7 días uno debajo del otro, gap 6px
-
-     3) DIAGRAMACIÓN  -> <div id="canvas-holder">  ***NO CAMBIAR DIMENSIONES***
+     2) DIAGRAMACIÓN (centro) -> <div id="canvas-holder">  ***NO CAMBIAR DIMENSIONES***
         "los rectángulos donde van los datos"
-        - ancho: viewport - 236px (lo que sobra al lado de la barra)
-        - alto: viewport - alto del header (igual que la barra lateral)
+        - ancho: lo que sobra entre el panel izquierdo y la barra derecha
+        - alto: 100vh completo (ya no hay una franja de header arriba)
         - dentro, el sketch p5 dibuja el área de ploteo:
             plotTop = 50 ; plotBottom = alto - 70
             plotLeft = max(96, ancho*0.10) ; plotRight = ancho - max(40, ancho*0.06)
-            semanal: 3 troncos en 1/6, 3/6, 5/6 del ancho útil
-            mensual: 1 tronco centrado, al doble de ancho
+            mensual (único modo): 1 tronco centrado, al doble de ancho
             grilla horaria 07:00 - 23:00
+
+     3) PANEL DERECHO -> <aside id="symbolLegend"> (order:1 para quedar
+        después del canvas-holder en .layout, que es flex)
+        - ancho: 236px fijo (ancho útil interno 196px = 236 - 40 de padding)
+        - alto: 100vh completo
+        - contiene sólo "Cómo leer las ramas" (.symbol-group), centrado en
+          vertical -- "Color según el día" ahora vive en el panel izquierdo
+        - separador: línea divisoria a la izquierda dibujada como
+          .layout::after (49px separada del borde de la barra) en vez de
+          border-left, para poder correrla sin tocar el ancho de la barra
   ===================================================================== */
 
-  /* === 1) CUADRADO HORIZONTAL ===
-     alto FIJO en 124px (para no mover la barra lateral ni la diagramación
-     al cambiar el tamaño del título). */
+  /* === 1) PANEL IZQUIERDO ===
+     ancho FIJO en 340px (para no mover la diagramación ni la barra derecha
+     al cambiar el tamaño del título). Apilado en vertical: título, bajada/
+     pregunta, controles y "Color según el día" (este último llega acá vía
+     JS, ver toSquareMode/toRectMode -- en el HTML "de reposo" ya está adentro
+     de <header>). */
   header{
     flex-shrink:0;
-    height:124px;
-    display:grid;
-    grid-template-columns:1fr auto 1fr;
-    align-items:start;
-    gap:28px;
-    padding:16px 32px;
-    border-bottom:1px solid var(--border);
+    width:340px;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:24px;
+    padding:28px 26px;
+    border-right:1px solid var(--border);
+    overflow-y:auto;
   }
-  header > *{ min-width:0; }
+  header > *{ min-width:0; flex-shrink:0; }
   .title{
     display:flex;
     flex-direction:column;
@@ -96,17 +94,20 @@
   }
   .intro{
     margin:0;
-    margin-top:8px;
     max-width:680px;
-    text-align:center;
+    text-align:left;
     font-size:13px;
     line-height:1.5;
     color:var(--muted);
   }
-  /* la bajada ("Este proyecto nace...") sólo se ve en el formato cuadrado
-     (portada); en el formato web horizontal, donde .intro-desc vive dentro
-     de <header>, va oculta -- ahí sólo queda la pregunta */
-  header .intro-desc{ display:none; }
+  /* la bajada ("Este proyecto nace...") ahora también se ve en el formato
+     web horizontal, debajo de la pregunta -- igual que en la portada
+     cuadrada. La pregunta (<strong>) es display:block, así que el <span>
+     de la bajada ya cae en su propia línea sin nada extra. */
+  header .intro-desc{
+    display:block;
+    margin-top:2px;
+  }
   .intro strong{
     display:block;
     font-family:'Fraunces',serif;
@@ -117,8 +118,6 @@
     margin-bottom:16px;
   }
   .controls{
-    justify-self:end;
-    margin-top:8px;
     display:flex;
     flex-direction:column;
     align-items:stretch;
@@ -204,33 +203,39 @@
     overflow:hidden;
     position:relative;
   }
-  /* línea divisoria junto a la simbología (barra lateral), separada del
-     border-right para poder correrla un poco a la derecha sin tocar el
+  /* línea divisoria junto a la simbología (barra derecha), separada del
+     border-left para poder correrla un poco a la izquierda sin tocar el
      ancho de #symbolLegend ni las dimensiones de la diagramación */
   .layout::after{
     content:"";
     position:absolute;
     top:0;
     bottom:0;
-    left:285px;
+    right:389px;
     width:1px;
     background:var(--border);
     pointer-events:none;
   }
-  /* === 2) BARRA LATERAL (contiene los cuadrados 2a y 2b) === */
+  /* === 3) BARRA DERECHA (sólo "Cómo leer las ramas" en formato web;
+     en cuadrado vuelve a contener también "Color según el día", ver JS) === */
+  /* mismo ancho que <header> (panel izquierdo, 340px) para que ambos lados
+     del árbol se vean parejos -- en cuadrado esto no aplica, ahí lo pisa
+     .sq-legend #symbolLegend{width:100%} (200px, ver más abajo) */
   #symbolLegend{
-    width:236px;
+    width:340px;
     flex-shrink:0;
     padding:14px 20px;
     overflow:hidden;
     display:flex;
     flex-direction:column;
   }
-  /* el overflow:hidden de arriba cortaba la última letra de la fila
-     "Estímulo sensorial" (el texto nowrap llega justo al borde de la
-     barra); en formato horizontal no hace falta ese recorte, así que se
-     deja visible para que la letra no se pierda */
+  /* order:1 la manda después de #canvas-holder en el flex de .layout, así
+     queda a la derecha del árbol en vez de a la izquierda. overflow:visible
+     porque el overflow:hidden de arriba cortaba la última letra de la fila
+     "Estímulo sensorial" (el texto nowrap llega justo al borde de la barra),
+     y en formato horizontal no hace falta ese recorte. */
   body:not(.square-mode) #symbolLegend{
+    order:1;
     overflow:visible;
   }
   #symbolLegend h2{
@@ -240,7 +245,10 @@
     margin:0 0 3px;
     color:var(--text);
   }
-  #symbolLegend h3{
+  /* selector sobre .day-group h3 directamente (no #symbolLegend h3) para
+     que siga funcionando sin importar dónde esté .day-group -- en formato
+     web vive dentro de <header>, no de #symbolLegend. */
+  .day-group h3{
     font-family:'Fraunces',serif;
     font-size:13.5px;
     text-transform:none;
@@ -248,13 +256,11 @@
     margin:0 0 20px;
     font-weight:600;
   }
-  /* === 2a) CUADRADO "CÓMO LEER LAS RAMAS" + SIMBOLOGÍAS ===
-     mitad superior de la barra. En formato horizontal, el h2 va junto a
-     las 4 filas (no separado) y el bloque completo se centra en vertical;
-     además se corre 12px a la derecha para alinear su borde izquierdo con
-     el título "Sublimación poética" del header (padding 32px vs 20px de
-     la barra lateral). En formato cuadrado se mantiene el comportamiento
-     previo (h2 fijo arriba, filas ancladas abajo). */
+  /* === "CÓMO LEER LAS RAMAS" ===
+     en formato web es lo único que hay en la barra derecha: h2 + las 4
+     filas, todo centrado en vertical. En formato cuadrado comparte la barra
+     con "Color según el día" (ver .day-group más abajo) y mantiene su
+     comportamiento propio (h2 fijo arriba, filas ancladas abajo). */
   .symbol-group{
     display:flex;
     flex-direction:column;
@@ -262,32 +268,39 @@
     min-height:0;
   }
   body:not(.square-mode) .symbol-group{
-    justify-content:flex-end;
-    padding-left:12px;
+    justify-content:flex-start;
+    margin-top:14px;
   }
   body:not(.square-mode) #symbolLegend h2{
+    font-size:18px;
     margin-bottom:24px;
   }
+  /* "Color según el día" (h3, ahora dentro de <header>, ver HTML) no tenía
+     estilo propio en formato web -- quedaba con el tamaño/tipografía por
+     defecto del navegador. Se empareja con "Cómo leer las ramas" (h2, arriba). */
+  body:not(.square-mode) .day-group h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:18px;
+    color:var(--text);
+  }
+  /* flex:0 0 auto (no crece): así el bloque completo h2+filas+(botón, en
+     cuadrado) mide sólo lo que ocupa su contenido, y el justify-content:center
+     de .symbol-group (ver más abajo) lo puede centrar de verdad -- si las
+     filas crecieran, se comerían todo el espacio libre y no quedaría nada
+     para centrar. */
   .symbol-rows{
     display:flex;
     flex-direction:column;
     justify-content:center;
-    flex:1 1 auto;
+    flex:0 0 auto;
     min-height:0;
     gap:13px;
   }
-  /* en formato cuadrado las filas van apegadas al h2 "Cómo leer las ramas"
-     (antes quedaban ancladas abajo, dejando un hueco grande bajo el título) */
-  body.square-mode .symbol-rows{
-    justify-content:flex-start;
-  }
-  /* baja las 4 filas de simbología respecto al h2 "Cómo leer las ramas"
-     (el h2 no se mueve) */
+  body:not(.square-mode) .symbol-rows{ gap:20px; }
+  /* baja las 4 filas de simbología respecto al h2 "Cómo leer las ramas" */
   body.square-mode #symbolLegend h2{
     margin-bottom:46px;
-  }
-  body:not(.square-mode) .symbol-rows{
-    flex:0 0 auto;
   }
   /* cada fila: título arriba, y debajo las dos opciones, cada una como
      [símbolo dibujado clickeable] + [su texto al lado] */
@@ -297,12 +310,18 @@
     align-items:flex-start;
     gap:6px;
   }
+  /* en cuadrado se mantienen pegadas a la izquierda (no centradas): el árbol
+     invade un poco esta columna por la derecha (ver body.square-viz
+     #canvas-holder margin-left, más abajo) para que las ramas largas no se
+     corten, así que centrar el ícono+texto los acercaba demasiado a esa
+     franja y se sentían superpuestos con la grilla/las ramas. */
   .symbol-row .row-title{ margin:0 0 1px; }
   .sym-opt-row{
     display:flex;
     align-items:center;
     gap:9px;
   }
+  body:not(.square-mode) .sym-opt-row{ gap:12px; }
   /* "Presencia del registro": las dos opciones pegadas para que se vea un solo
      tronco continuo (mismo x de la línea vertical en ambos svg) */
   .symbol-row--joined{ gap:0; }
@@ -318,6 +337,8 @@
     height:auto;
   }
   body.square-mode .sym-opt-row svg{ width:52px; }
+  /* más grandes en formato web, igual que se agrandaron los botones de día */
+  body:not(.square-mode) .sym-opt-row svg{ width:70px; }
   .sym-opt-row p{
     margin:0;
     font-size:11.5px;
@@ -325,7 +346,7 @@
     color:var(--muted);
   }
   body.square-mode .sym-opt-row p{ font-size:10px; }
-  body:not(.square-mode) .sym-opt-row p{ white-space:nowrap; }
+  body:not(.square-mode) .sym-opt-row p{ white-space:nowrap; font-size:14.5px; }
   .sym-opt-row p strong{ color:var(--text); }
   /* cada símbolo (el <svg> de la opción) es clickeable: filtra las ramas a esa
      variable (ver JS "selectedVars"). El <rect> transparente es área de click
@@ -347,9 +368,12 @@
     font-weight:600;
     color:var(--text);
   }
-  /* === 2b) CUADRADO "COLOR SEGÚN EL DÍA" ===
-     mitad inferior de la barra, mismo ancho y alto que 2a.
-     El border-top es la línea divisoria en el medio exacto de la barra. */
+  body:not(.square-mode) .row-title{ font-size:14.5px; }
+  /* === "COLOR SEGÚN EL DÍA" ===
+     en formato web vive dentro de <header> (panel izquierdo), después de
+     los controles -- el border-top hace de divisoria antes de esta sección.
+     En formato cuadrado comparte la barra con "Cómo leer las ramas" (ver
+     INTERCAMBIO más abajo: acá va arriba, como franja horizontal). */
   .day-group{
     display:flex;
     flex-direction:column;
@@ -357,14 +381,6 @@
     min-height:0;
     padding-top:14px;
     border-top:1px solid var(--border);
-  }
-  /* mismo tratamiento que 2a: en formato horizontal el bloque
-     h3+lista se centra en vertical y se corre 12px a la derecha
-     para alinearse con el título "Sublimación poética" del header */
-  body:not(.square-mode) .day-group{
-    justify-content:center;
-    padding-left:12px;
-    border-top:none;
   }
   body.square-mode .symbol-group{
     flex:1 1 auto;
@@ -429,13 +445,14 @@
   .day-row .dot{
     width:10px; height:10px; border-radius:50%; flex-shrink:0;
   }
-  body.square-mode #dayLegend .day-row{
-    padding:4px 6px;
-    font-size:11px;
-    gap:10px;
+  /* más grandes en formato web (en cuadrado quedan al tamaño base) */
+  body:not(.square-mode) .day-row{
+    font-size:14px;
+    padding:9px 14px;
+    gap:13px;
   }
-  body.square-mode #dayLegend .day-row .dot{
-    width:10px; height:10px;
+  body:not(.square-mode) .day-row .dot{
+    width:13px; height:13px;
   }
 
   /* === 3) DIAGRAMACIÓN — rectángulos donde van los datos ===
@@ -586,117 +603,6 @@
   #homeBtn:hover{ background:#f1e9d5; }
   body.square-viz #homeBtn{ display:block; }
 
-  /* === PANEL DE CONTROL (columna izquierda, fuera del cuadrado) ===
-     .ctrl-panel es la caja compartida; #weekPanel es EL panel de video, uno
-     solo, visible en toda la sesión cuadrada (portada + viz) -- recorre las
-     dos diapos de corrido: escribe la bajada, pasa a la viz, aprieta
-     "Renderizar crecimiento", los 7 días uno por uno, "Mostrar todo",
-     4 combinaciones al azar y "Datos". */
-  .ctrl-panel{
-    position:fixed;
-    left:16px;
-    top:20px;
-    width:236px;
-    max-height:calc(100vh - 32px);
-    overflow-y:auto;
-    z-index:60;
-    display:none;
-    flex-direction:column;
-    gap:14px;
-    padding:18px;
-    background:rgba(248,244,234,.97);
-    border:1px solid var(--border);
-    border-radius:16px;
-    box-shadow:0 6px 22px rgba(43,38,32,.10);
-    font-family:'Inter',sans-serif;
-    font-size:12px;
-    color:var(--text);
-  }
-  /* visible en toda la sesión cuadrada, tanto en la portada como en la viz */
-  body.square-mode #weekPanel{ display:flex; }
-  /* botón de exportar PNG: texto más chico para que entre en el panel */
-  #sqDownload{ white-space:normal; font-size:12.5px; margin-top:4px; }
-  /* indicador de grabación en curso (fuera del cuadrado, no se graba) */
-  #recDot{
-    display:none;
-    position:fixed;
-    right:16px;
-    bottom:62px;
-    z-index:80;
-    padding:5px 10px;
-    border-radius:12px;
-    background:#b3261e;
-    color:#fff;
-    font-family:'Inter',sans-serif;
-    font-size:11px;
-    font-weight:600;
-    letter-spacing:.4px;
-    box-shadow:0 3px 10px rgba(43,38,32,.2);
-  }
-  /* controles apilados a ancho completo */
-  .ctrl-panel .vp-controls{
-    display:flex;
-    flex-direction:column;
-    align-items:stretch;
-    gap:9px;
-  }
-  /* botones grandes, ancho completo, todos en el mismo tono claro */
-  .ctrl-panel button{
-    font:inherit;
-    font-size:15px;
-    padding:14px 16px;
-    border:1px solid var(--border);
-    border-radius:12px;
-    background:#fdfaf1;
-    color:var(--text);
-    cursor:pointer;
-    white-space:nowrap;
-  }
-  .ctrl-panel button:hover:not(:disabled){ background:#f1e9d5; }
-  .ctrl-panel button:disabled{ opacity:.4; cursor:default; }
-  .ctrl-panel .vp-primary{ font-weight:600; } /* solo negrita, mismo claro que el resto */
-  .ctrl-panel .vp-field{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:6px;
-    color:var(--muted);
-  }
-  .ctrl-panel .vp-field input,
-  .ctrl-panel .vp-field select{
-    font:inherit;
-    padding:6px 8px;
-    border:1px solid var(--border);
-    border-radius:8px;
-    background:#fff;
-    color:var(--text);
-    max-width:118px;
-  }
-  .ctrl-panel .vp-field input{ width:56px; }
-  .ctrl-panel .vp-clock{
-    color:var(--muted);
-    font-variant-numeric:tabular-nums;
-    text-align:center;
-  }
-  .ctrl-panel .vp-track{
-    position:relative;
-    height:6px;
-    border-radius:3px;
-    background:#e4dcc6;
-  }
-  .ctrl-panel .vp-fill{
-    position:absolute; left:0; top:0; bottom:0;
-    width:0;
-    border-radius:3px;
-    background:#2b2620;
-  }
-  .ctrl-panel .vp-head{
-    position:absolute; top:50%; left:0;
-    width:12px; height:12px;
-    margin:-6px 0 0 -6px;
-    border-radius:50%;
-    background:#2b2620;
-  }
   /* =====================================================================
      MODO CUADRADO (alternativa completa de página, activada por #formatBtn)
 
@@ -724,9 +630,6 @@
   }
   body.square-mode .square-stage{
     display:flex;
-    /* reserva la columna izquierda para el panel de video (fijo), así el
-       cuadrado queda a su derecha y nunca por debajo/encima de él */
-    padding-left:246px;
   }
 
   .square-box{
@@ -767,9 +670,8 @@
   .sq-landing .intro{ margin-top:24px; max-width:310px; text-wrap:balance; }
   .sq-landing .intro-desc br{ display:none; }
   .sq-landing .intro strong{ margin-bottom:36px; }
-  /* los botones van fuera del flujo: posición fija en la diapo, así NO se
-     mueven cuando el panel de video escribe/borra la bajada arriba. Solo
-     siguen siendo clickeables. */
+  /* los botones van fuera del flujo: posición fija en la diapo, no se mueven
+     si la bajada cambia de alto arriba. Solo siguen siendo clickeables. */
   .sq-landing .mode-row{
     position:absolute;
     left:50%;
@@ -852,23 +754,31 @@
     min-width:0;
     min-height:0;
     display:flex;
-    position:relative; /* ancla para #weekBtns */
+    position:relative;
   }
-  /* botones "Semana 1/2/3" debajo del árbol -- solo en la viz del mensual
-     cuadrado. Se activan (.on) a medida que #weekPanel reproduce cada semana. */
-  #weekBtns{ display:none; }
-  body.square-viz.square-monthly #weekBtns{
+  /* botones "Semana 1/2/3" debajo del único tronco -- formato web y cuadrado
+     por igual (siempre hay un solo tronco, ver drawMonthly). Se activan
+     (.on) a medida que "Renderizar crecimiento" llega a cada semana. Viven
+     DENTRO de #canvas-holder (que tiene overflow:hidden), por eso el offset
+     va hacia adentro (bottom positivo) y no por fuera del borde. */
+  #weekBtns{
     display:flex;
     position:absolute;
     left:0; right:0;
-    bottom:-18px;
+    bottom:8px;
     justify-content:center;
     gap:10px;
     z-index:3;
     /* el desplazamiento fino para centrarlos bajo el tronco lo pone drawMonthly
        como style.transform inline (depende del ancho del canvas en vivo) */
+    /* el contenedor va left:0/right:0 para poder centrarse, pero eso lo hace
+       tan ancho como #canvas-holder -- en formato web eso llega hasta la
+       esquina inferior derecha y tapaba los clicks de #formatBtn/#helpBtn.
+       pointer-events vuelve a habilitarse sólo en los botones mismos. */
+    pointer-events:none;
   }
   #weekBtns button{
+    pointer-events:auto;
     font-family:'Inter',sans-serif;
     font-size:12px;
     padding:6px 15px;
@@ -887,6 +797,12 @@
     color:#f2ecdd;
     border-color:#2b2620;
   }
+  /* más grandes en formato web (en cuadrado quedan al tamaño base, más chico
+     porque comparten espacio con la diagramación) */
+  body:not(.square-mode) #weekBtns button{
+    font-size:15px;
+    padding:10px 22px;
+  }
   /* la pantalla viz cuadrada corre el canvas 56px hacia la izquierda (sobre el
      gap y el borde de la leyenda) para ganar lugar donde dibujar las ramas
      largas del árbol de la Semana 1 sin que se corten. El sketch p5 desplaza
@@ -900,6 +816,14 @@
     pointer-events:none;
   }
 
+  /* un poco más arriba que el default (8px), para que no queden pegados al
+     borde de abajo ahora que el árbol quedó un poco más bajo (ver computeLayout) */
+  body:not(.square-mode) #weekBtns{ bottom:24px; }
+  /* en cuadrado el árbol llega más abajo que en web -- casi no queda aire
+     debajo de la línea de las 07:00, así que acá van más cerca del borde
+     (si no, quedan pisando el tronco/las ramas de esa hora) */
+  body.square-viz #weekBtns{ bottom:4px; }
+
   /* ---- formato cuadrado: textos, íconos y botones un poco más chicos que
      en el formato web (solo afecta a body.square-mode / body.square-viz) ---- */
   body.square-mode .sq-landing .title{ font-size:54px; }
@@ -908,7 +832,7 @@
 
   body.square-mode #symbolLegend h2{ font-size:14px; }
   /* mismo tamaño que el h2, y pegado a sus pastillas de días */
-  body.square-mode #symbolLegend h3{ font-size:14px; margin-bottom:6px; }
+  body.square-mode .day-group h3{ font-size:14px; margin-bottom:6px; }
   body.square-mode .symbol-rows{ gap:22px; }
   body.square-mode .symbol-row{ gap:2px; } /* menos espacio entre las 2 opciones de cada fila */
   body.square-mode .symbol-row--joined{ gap:0; }
@@ -943,9 +867,7 @@
     margin:0;
     z-index:2;
   }
-  /* el #symbolLegend en el selector es para ganarle en especificidad a
-     "#symbolLegend h3 { margin:0 0 20px }" (que tiene un id y fijaba margin-top:0) */
-  body.square-viz #symbolLegend .day-group h3{ margin:-8px 0 13px; } /* posición del título; el margin-bottom baja las pastillas */
+  body.square-viz .day-group h3{ margin:-8px 0 13px; } /* posición del título; el margin-bottom baja las pastillas */
   body.square-viz #dayLegend{
     flex-direction:row;
     flex-wrap:nowrap;
@@ -962,8 +884,12 @@
   body.square-viz #dayLegend .day-row .dot{ width:9px; height:9px; }
 
   body.square-mode .mode-btn{ padding:10px 22px; font-size:16px; }
-  /* en el cuadrado sólo se ofrece "Visualización mensual" */
-  body.square-mode #modeWeekly{ display:none; }
+  /* un solo tronco siempre (mensual): ya no se ofrece "Visualización
+     semanal" en ningún formato. */
+  #modeWeekly{ display:none; }
+  /* sin "semanal" no queda nada que elegir en el formato web -- se oculta
+     la fila entera (en el cuadrado sigue viva para entrar a la viz). */
+  body:not(.square-mode) .mode-row{ display:none; }
   /* en la diapo cuadrada los dos botones se ven igual que "Visualización
      mensual" (claro): sin el estado activo oscuro */
   body.square-mode .mode-btn.active{
@@ -976,7 +902,9 @@
 </head>
 <body>
 
-<!-- 1) CUADRADO HORIZONTAL: título + bajada + controles (ver MAPA DE LA PÁGINA en <style>) -->
+<!-- 1) PANEL IZQUIERDO: título + bajada + controles + "Color según el día"
+     (ver MAPA DE LA PÁGINA en <style>). .day-group viaja a #symbolLegend en
+     formato cuadrado y vuelve acá en formato web, ver JS toSquareMode/toRectMode -->
 <header>
   <h1 class="title"><span>Sublimación</span><span>poética</span></h1>
   <p class="intro"><strong>¿Qué despierta en mí el<br>impulso por escribir?</strong> <span class="intro-desc">Este proyecto nace de la inquietud por registrar aquello que ocurre antes de escribir; como el momento, el lugar, los estímulos sensoriales y los estados emocionales que acompañan ese impulso.</span></p>
@@ -986,16 +914,20 @@
          sólo visibles en la pantalla viz cuadrada, debajo del botón -->
     <p id="renderCredits">De: Bernardita Jesús y Braulio Figueroa<br>Para: Taller Visualización Interactiva</p>
     <div class="mode-row">
-      <button id="modeWeekly" class="mode-btn active">Visualización<br>semanal</button>
-      <button id="modeMonthly" class="mode-btn">Visualización<br>mensual</button>
+      <button id="modeWeekly" class="mode-btn">Visualización<br>semanal</button>
+      <button id="modeMonthly" class="mode-btn active">Visualización<br>mensual</button>
     </div>
+  </div>
+  <div class="day-group">
+    <h3>Color según el día</h3>
+    <div id="dayLegend"></div>
   </div>
 </header>
 
 <div class="layout">
-  <!-- 2) BARRA LATERAL: cuadrado 2a (Cómo leer las ramas) + cuadrado 2b (Color según el día) -->
+  <!-- 3) BARRA DERECHA: "Cómo leer las ramas" (en cuadrado también recibe
+       "Color según el día", ver JS toSquareMode) -->
   <aside id="symbolLegend">
-    <!-- 2a) CUADRADO "CÓMO LEER LAS RAMAS" + SIMBOLOGÍAS -->
     <div class="symbol-group">
     <h2>Cómo leer las ramas</h2>
     <div class="symbol-rows">
@@ -1075,16 +1007,22 @@
     </div>
     </div>
     </div>
-
-    <!-- 2b) CUADRADO "COLOR SEGÚN EL DÍA" -->
-    <div class="day-group">
-      <h3>Color según el día</h3>
-      <div id="dayLegend"></div>
-    </div>
   </aside>
 
-  <!-- 3) DIAGRAMACIÓN: rectángulos donde van los datos — NO CAMBIAR DIMENSIONES -->
-  <div id="canvas-holder"></div>
+  <!-- 2) DIAGRAMACIÓN: rectángulos donde van los datos — NO CAMBIAR DIMENSIONES -->
+  <div id="canvas-holder">
+    <!-- botones de semana, debajo del único tronco (formato web y cuadrado
+         por igual). Se activan solos a medida que "Renderizar crecimiento"
+         llega a cada semana; también se puede clickear para saltar a esa
+         semana. Vive DENTRO de #canvas-holder (no al lado) para viajar con
+         él cuando se reparenta entre .layout y #sqCanvas (ver toSquareMode/
+         toRectMode) y quedar siempre alineado bajo el tronco. -->
+    <div id="weekBtns">
+      <button type="button" data-week="0">Semana 1</button>
+      <button type="button" data-week="1">Semana 2</button>
+      <button type="button" data-week="2">Semana 3</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODO CUADRADO: alternativa de página completa (ver #formatBtn), poblada
@@ -1096,16 +1034,7 @@
       <div class="sq-header" id="sqHeader"></div>
       <div class="sq-body">
         <div class="sq-legend" id="sqLegend"></div>
-        <div class="sq-canvas" id="sqCanvas">
-          <!-- botones de semana, debajo del árbol (solo mensual cuadrado). Se
-               activan solos a medida que el panel #weekPanel reproduce cada
-               semana; también se puede clickear para saltar a esa semana. -->
-          <div id="weekBtns">
-            <button type="button" data-week="0">Semana 1</button>
-            <button type="button" data-week="1">Semana 2</button>
-            <button type="button" data-week="2">Semana 3</button>
-          </div>
-        </div>
+        <div class="sq-canvas" id="sqCanvas"></div>
       </div>
     </div>
   </div>
@@ -1200,44 +1129,6 @@
 <!-- volver a la pantalla de inicio del cuadrado (fijo arriba a la derecha,
      fuera del cuadrado). Sólo aparece cuando ya se entró a una visualización. -->
 <button id="homeBtn" type="button" title="Volver al inicio" aria-label="Volver al inicio">↩ Inicio</button>
-
-<!-- PANEL DE VIDEO — UNO SOLO, visible en toda la sesión cuadrada (portada +
-     viz), que recorre las dos diapos de corrido:
-       Bajada (escribe el texto bajo la pregunta) -> Crecimiento (pasa a la
-       viz y aprieta "Renderizar crecimiento") -> los 7 días uno por uno
-       (Lunes..Domingo) -> "Mostrar todo" -> 4 combinaciones al azar
-       (semana+día+rama) -> "Datos" (vuelve a mostrar todo).
-     Cada fase tiene su input de segundos; los 7 días comparten "seg/día" y
-     las 4 combinaciones comparten "Azar combo". Ver JS "PANEL DE VIDEO". -->
-<div id="weekPanel" class="ctrl-panel">
-  <div class="vp-controls">
-    <button id="sqStart" class="vp-primary" type="button">Comenzar video</button>
-    <button id="sqPlay" type="button">Reproducir sin grabar</button>
-    <button id="sqPause" type="button" disabled>Pausa</button>
-    <button id="sqReset" type="button">Reiniciar</button>
-    <label class="vp-field">Bajada
-      <input id="vpBajadaSec" type="number" min="0.5" max="120" step="0.5" value="9"> s
-    </label>
-    <label class="vp-field">Crecimiento
-      <input id="sqCrecerSec" type="number" min="1" max="60" step="0.5" value="22"> s
-    </label>
-    <label class="vp-field">seg/día
-      <input id="sqDiaSec" type="number" min="0.3" max="30" step="0.1" value="3"> s
-    </label>
-    <label class="vp-field">Mostrar todo
-      <input id="sqTodosSec" type="number" min="0.5" max="30" step="0.5" value="3"> s
-    </label>
-    <label class="vp-field">Azar combo
-      <input id="sqComboSec" type="number" min="0.5" max="30" step="0.5" value="7"> s
-    </label>
-    <span id="sqClock" class="vp-clock">0.0 / 0.0 s</span>
-  </div>
-  <div class="vp-track">
-    <div class="vp-fill" id="sqFill"></div>
-    <div class="vp-head" id="sqHead"></div>
-  </div>
-  <button id="sqDownload" type="button">Descargar PNG 1920×1920</button>
-</div>
 
 <script>
 /* ---------------------------------------------------------------
@@ -1463,8 +1354,8 @@ document.querySelectorAll(".sym-hit").forEach((el)=>{
      - las ramas que el nuevo filtro revela (sea la primera vez o de nuevo,
        porque antes habían quedado ocultas) SÍ vuelven a crecer desde cero,
        en vez de aparecer ya crecidas de golpe.
-   Se llama ANTES de cambiar selectedDays/selectedVars/selectedWeeks, tanto
-   desde los clicks manuales como desde el secuenciador de video.
+   Se llama ANTES de cambiar selectedDays/selectedVars/selectedWeeks, desde
+   los clicks manuales de los filtros.
 ------------------------------------------------------------------ */
 function currentlyVisibleIndices(){
   const s = new Set();
@@ -1478,49 +1369,20 @@ function pruneBranchAppear(){
   const keep = currentlyVisibleIndices();
   branchAppear.forEach((_, i)=>{ if(!keep.has(i)) branchAppear.delete(i); });
 }
-function syncDayRowsUI(){
-  document.querySelectorAll(".day-row").forEach(r=>{
-    r.classList.toggle("selected", selectedDays.has(Number(r.dataset.day)));
-  });
-}
-function syncSymHitsUI(){
-  document.querySelectorAll(".sym-hit").forEach(o=>{
-    o.classList.toggle("on", selectedVars.has(o.dataset.var));
-  });
-}
-// days: arreglo de índices 0..6, o null/[] para limpiar el filtro de días
-function setDayFilter(days){
-  selectedDays.clear();
-  if(days) days.forEach(d=> selectedDays.add(d));
-  syncDayRowsUI();
-}
-// vars: arreglo de tokens ("escrita:1", "sentimiento:ond", ...), o null para limpiar
-function setVarFilter(vars){
-  selectedVars.clear();
-  if(vars) vars.forEach(v=> selectedVars.add(v));
-  syncSymHitsUI();
-}
-// weeks: arreglo de semanas 1..3, o null para limpiar. El estado .on de los
-// botones #weekBtns lo recalcula drawMonthly a partir de selectedWeeks.
-function setWeekFilter(weeks){
-  selectedWeeks.clear();
-  if(weeks) weeks.forEach(w=> selectedWeeks.add(w));
-}
-function clearSequencerFilters(){
-  selectedDays.clear();
-  selectedVars.clear();
-  selectedWeeks.clear();
-  syncDayRowsUI();
-  syncSymHitsUI();
-}
 
 // growth animation state, shared between the buttons and the sketch
 const RENDER_DURATION = 14000; // ms each tree takes to grow fully
 // "semanal" -> un tronco por semana (comportamiento original)
 // "mensual" -> un solo tronco al doble de ancho del que salen las ramas de las semanas 1, 2 y 3
-let viewMode = "semanal";
+// default y único modo alcanzable desde la UI ahora: un solo tronco siempre
+// (ver #modeWeekly{display:none}); "semanal" queda el código pero inalcanzable.
+let viewMode = "mensual";
 const renderState = { started: false, currentWeek: 0, weekStartTime: 0, monthStartTime: 0 };
 let branchAppear = new Map();
+// stub: ya no existe el panel de video que reproducía las semanas día a día,
+// pero drawMonthly/setMode/homeBtn siguen consultando window.weekPlay --
+// queda inactivo (.active siempre false) para que ese código no rompa.
+window.weekPlay = { active:false, reset(){} };
 
 function startRender(){
   renderState.started = true;
@@ -1531,6 +1393,10 @@ function startRender(){
 }
 
 document.getElementById("renderBtn").addEventListener("click", startRender);
+// el árbol crece solo apenas carga la página (antes había que apretar
+// "Renderizar crecimiento" a mano); el botón queda para poder reiniciar
+// la animación de crecimiento cuando se quiera.
+startRender();
 
 const modeWeeklyBtn = document.getElementById("modeWeekly");
 const modeMonthlyBtn = document.getElementById("modeMonthly");
@@ -1549,17 +1415,12 @@ function setMode(mode){
   viewMode = mode;
   modeWeeklyBtn.classList.toggle("active", mode === "semanal");
   modeMonthlyBtn.classList.toggle("active", mode === "mensual");
-  // el panel de video sólo existe para el mensual cuadrado
+  // los botones "Semana 1/2/3" sólo existen para el mensual cuadrado
   document.body.classList.toggle("square-monthly", mode === "mensual");
   branchAppear = new Map();
   // el árbol NO arranca a crecer solo al entrar a la visualización: se dispara
-  // a mano con "Renderizar crecimiento" (o lo dispara el panel de video, como
-  // parte de su paso "Crecimiento"). Si ya se estaba renderizando, se reinicia
-  // en el nuevo modo.
-  // OJO: setMode NO reinicia el panel de video (window.weekPlay.reset) -- lo
-  // hace justamente el paso "Crecimiento" del panel AL LLAMAR a setMode para
-  // pasar a la viz; reiniciarlo acá lo cortaría a mitad de su propia secuencia.
-  // El reinicio del panel vive en Reiniciar / ↩ Inicio / toRectMode.
+  // a mano con "Renderizar crecimiento". Si ya se estaba renderizando, se
+  // reinicia en el nuevo modo.
   if(renderState.started) startRender();
 }
 modeWeeklyBtn.addEventListener("click", ()=> setMode("semanal"));
@@ -1568,7 +1429,6 @@ modeMonthlyBtn.addEventListener("click", ()=> setMode("mensual"));
 // "Volver al inicio": vuelve a la pantalla de inicio del cuadrado y deja todo
 // en limpio (reproducción de semanas, filtros de día/semana, crecimiento).
 document.getElementById("homeBtn").addEventListener("click", ()=>{
-  if(window.squareRecorder) window.squareRecorder.abort();
   if(window.weekPlay && window.weekPlay.reset) window.weekPlay.reset();
   selectedDays.clear();
   selectedWeeks.clear();
@@ -1581,494 +1441,6 @@ document.getElementById("homeBtn").addEventListener("click", ()=>{
   toSquareMode();          // saca .square-viz y devuelve título/bajada al inicio
   if(window.recomputePlotLayout) window.recomputePlotLayout();
 });
-
-/* ---------------------------------------------------------------
-   PANEL DE VIDEO — UNO SOLO para toda la sesión cuadrada (portada + viz).
-   Recorre las dos diapos de corrido, en este orden:
-     0) "Bajada": reescribe el texto bajo la pregunta, letra por letra.
-     1) "Crecimiento": pasa a la viz (setMode) y aprieta "Renderizar
-        crecimiento"; deja pasar los segundos que tarden los árboles en
-        crecer (el tronco y las ramas aparecen día a día, ya lo hace
-        drawMonthly con renderState).
-     2) Los 7 días uno por uno: Lunes, Martes, ... Domingo. En cada paso
-        queda visible SÓLO ese día (se reemplaza el filtro anterior).
-     3) "Mostrar todo": limpia los filtros y se ven todos los datos.
-     4) Cuatro COMBINACIONES al azar, distintas entre sí: cada una mezcla
-        1 o 2 semanas, un filtro de 1 a 3 días y una opción de la simbología
-        (escrito, estímulo, sentimiento o magnitud).
-     5) "Datos": limpia todo y vuelve a mostrar todos los datos.
-   Cada fase tiene su input de segundos; los 7 días comparten "seg/día" y
-   las cuatro combinaciones comparten "Azar combo".
-   drawMonthly y algunos hooks (setMode/toRectMode/homeBtn) todavía
-   consultan window.weekPlay; queda como stub inactivo y su .reset lo
-   completa este secuenciador.
------------------------------------------------------------------- */
-window.weekPlay = { active:false, reset(){} };
-(function(){
-  const startBtn   = document.getElementById("sqStart");
-  const playBtn    = document.getElementById("sqPlay");
-  const pauseBtn   = document.getElementById("sqPause");
-  const resetBtn   = document.getElementById("sqReset");
-  const bajadaIn   = document.getElementById("vpBajadaSec");
-  const crecerIn   = document.getElementById("sqCrecerSec");
-  const diaIn      = document.getElementById("sqDiaSec");
-  const todosIn    = document.getElementById("sqTodosSec");
-  const comboIn    = document.getElementById("sqComboSec");
-  const fillEl     = document.getElementById("sqFill");
-  const headEl     = document.getElementById("sqHead");
-  const clockEl    = document.getElementById("sqClock");
-  if(!startBtn) return;
-
-  // paso "Bajada": reescribe el texto bajo la pregunta letra por letra. Es
-  // CONTINUO (se aplica cada frame según el elapsed general, ver frame()),
-  // no un fire() de una sola vez como el resto de los pasos.
-  const descEl = document.querySelector(".intro-desc");
-  const DESC_FULL = descEl ? descEl.innerHTML
-    .replace(/<br\s*\/?>/gi, " [BR] ")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/ ?\[BR\] ?/g, "\n") : "";
-  if(descEl){ descEl.style.whiteSpace = "pre-wrap"; descEl.textContent = DESC_FULL; }
-  function setDescProgress(p){
-    if(!descEl) return;
-    const n = Math.round(DESC_FULL.length * Math.max(0, Math.min(1, p)));
-    descEl.textContent = DESC_FULL.slice(0, n);
-  }
-
-  const secOf = (input, min)=> Math.max(min, parseFloat(input.value) || 0);
-
-  const VAR_TOKENS = ["escrita:1","escrita:0","estimulo:1","estimulo:0",
-                      "sentimiento:lisa","sentimiento:ond","magnitud:1","magnitud:0"];
-  const randInt = (n)=> Math.floor(Math.random() * n);
-  function randomDays(){
-    const n = 1 + randInt(3); // 1..3 días
-    const pool = [0,1,2,3,4,5,6];
-    const out = [];
-    for(let k = 0; k < n && pool.length; k++){
-      out.push(pool.splice(randInt(pool.length), 1)[0]);
-    }
-    return out;
-  }
-  const randomVars = ()=> [VAR_TOKENS[randInt(VAR_TOKENS.length)]];
-  function randomWeeks(){
-    const n = 1 + randInt(2); // 1..2 semanas
-    const pool = [1, 2, 3];
-    const out = [];
-    for(let k = 0; k < n && pool.length; k++){
-      out.push(pool.splice(randInt(pool.length), 1)[0]);
-    }
-    return out;
-  }
-
-  // por tema práctico, una combinación al azar (semanas + días + opción de
-  // simbología) tiene que dejar al menos MIN_COMBO_RESULTS ramas visibles --
-  // si no, el árbol queda demasiado pelado para que se entienda el filtro.
-  const MIN_COMBO_RESULTS = 3;
-  function countComboResults(weeks, days, vars){
-    const wset = new Set(weeks), dset = new Set(days), vset = new Set(vars);
-    const dim = vars[0].split(":")[0]; // randomVars devuelve una sola dimensión
-    let count = 0;
-    for(const e of PULSIONES){
-      if(wset.has(e.week || 1) && dset.has(e.day) && vset.has(varTokenOf(e, dim))) count++;
-    }
-    return count;
-  }
-  function comboHasResult(weeks, days, vars){
-    return countComboResults(weeks, days, vars) >= MIN_COMBO_RESULTS;
-  }
-
-  // las cuatro combinaciones al azar del final tienen que ser distintas entre
-  // sí. Se generan en el momento de dispararse (así cambian en cada corrida)
-  // pero recordando las ya usadas en ESTA corrida; hardReset limpia la lista.
-  // Cada combinación cruza semanas + días + una opción de simbología, y NUNCA
-  // puede quedar con menos de MIN_COMBO_RESULTS ramas como resultado.
-  let usedComboSigs = [];
-  function fireCombo(){
-    let weeks, days, vars, sig, guard = 0;
-    const srt = (arr)=> arr.slice().sort((a, b)=> a - b).join(",");
-    do {
-      weeks = randomWeeks();
-      days = randomDays();
-      vars = randomVars();
-      sig = srt(weeks) + "#" + srt(days) + "|" + vars.join(",");
-    } while((usedComboSigs.indexOf(sig) !== -1 || !comboHasResult(weeks, days, vars)) && guard++ < 250);
-    // por si el azar no encontró una combinación con suficientes ramas: se
-    // elige el token de simbología con más pulsiones y se arman semanas/días
-    // a partir de TODAS las que lo cumplen, así el mínimo queda garantizado
-    // (salvo que ni siquiera ese token alcance el mínimo en todo el dataset).
-    if(!comboHasResult(weeks, days, vars)){
-      let best = [], bestToken = VAR_TOKENS[0];
-      VAR_TOKENS.slice().sort(()=> Math.random() - 0.5).forEach(tk=>{
-        const dim = tk.split(":")[0];
-        const matches = PULSIONES.filter(e=> varTokenOf(e, dim) === tk);
-        if(matches.length > best.length){ best = matches; bestToken = tk; }
-      });
-      weeks = best.length ? Array.from(new Set(best.map(e=> e.week || 1))) : [1, 2, 3];
-      days = best.length ? Array.from(new Set(best.map(e=> e.day))) : [0, 1, 2, 3, 4, 5, 6];
-      vars = [bestToken];
-      sig = srt(weeks) + "#" + srt(days) + "|" + vars.join(",");
-    }
-    usedComboSigs.push(sig);
-    pruneBranchAppear(); // una sola vez, antes de aplicar las tres partes del combo
-    setWeekFilter(weeks);
-    setDayFilter(days);
-    setVarFilter(vars);
-  }
-
-  // pasos en orden; dur() -> segundos; fire() corre UNA sola vez, cuando la
-  // línea de tiempo entra a ese paso. label corto para el marcador de fase.
-  const bajadaDur = ()=> secOf(bajadaIn, 0.5);
-  function buildSteps(){
-    const steps = [
-      // sin fire(): la bajada se aplica de forma continua en frame(), no acá
-      { key:"bajada", marker:"Bajada", dur: bajadaDur, fire:()=>{} },
-      // pausa fija: se queda 2s con la bajada ya escrita antes de pasar a la viz
-      { key:"pausaBajada", marker:null, dur:()=> 2, fire:()=>{} },
-      { key:"crecer", marker:"Crecer", dur:()=> secOf(crecerIn, 1),
-        // pasa de la portada a la viz (no-op si ya está ahí) y arranca el
-        // crecimiento del árbol
-        fire:()=>{ setMode("mensual"); clearSequencerFilters(); startRender(); } }
-    ];
-    DAYS.forEach((d, i)=>{
-      steps.push({ key:"dia"+i, marker:i === 0 ? "Días" : null,
-        dur:()=> secOf(diaIn, 0.2), fire:()=>{ pruneBranchAppear(); setDayFilter([i]); } });
-    });
-    steps.push({ key:"todos", marker:"Todo", dur:()=> secOf(todosIn, 0.2),
-      fire:()=>{ pruneBranchAppear(); clearSequencerFilters(); } });
-    for(let c = 0; c < 4; c++){
-      steps.push({ key:"combo"+c, marker:c === 0 ? "Combos" : null,
-        dur:()=> secOf(comboIn, 0.2), fire:fireCombo });
-    }
-    steps.push({ key:"datos", marker:"Datos", dur:()=> secOf(todosIn, 0.2),
-      fire:()=>{ pruneBranchAppear(); clearSequencerFilters(); } });
-    // pausa fija: se queda 2s más con el árbol completo antes de terminar
-    steps.push({ key:"pausaFinal", marker:null, dur:()=> 2, fire:()=>{} });
-    return steps;
-  }
-  let STEPS = buildSteps();
-  const totalDur = ()=> STEPS.reduce((s, st)=> s + st.dur(), 0);
-
-  let rafId = null, playing = false, elapsed = 0, lastT = 0, firedTo = 0;
-
-  // dispara, en orden, los pasos cuyo inicio ya quedó <= t
-  function fireUpTo(t){
-    let acc = 0;
-    for(let i = 0; i < STEPS.length; i++){
-      if(i >= firedTo && acc <= t + 1e-6){
-        STEPS[i].fire();
-        firedTo = i + 1;
-      }
-      acc += STEPS[i].dur();
-    }
-  }
-
-  function renderTimeline(){
-    const total = totalDur();
-    const frac = total > 0 ? Math.max(0, Math.min(1, elapsed / total)) : 0;
-    fillEl.style.width = (frac * 100) + "%";
-    headEl.style.left = (frac * 100) + "%";
-    clockEl.textContent = elapsed.toFixed(1) + " / " + total.toFixed(1) + " s";
-  }
-  function frame(now){
-    const dt = Math.max(0, (now - lastT) / 1000);
-    lastT = now;
-    elapsed = Math.max(0, Math.min(totalDur(), elapsed + dt));
-    setDescProgress(elapsed / bajadaDur()); // paso "Bajada", continuo (se clampea solo)
-    fireUpTo(elapsed);
-    renderTimeline();
-    if(elapsed >= totalDur()){
-      playing = false; rafId = null; syncButtons();
-      // fin de la secuencia de la viz -> cierra y guarda la grabación (si hay)
-      if(window.squareRecorder) window.squareRecorder.finish();
-      return;
-    }
-    rafId = requestAnimationFrame(frame);
-  }
-  function play(fromZero){
-    if(fromZero) hardReset();
-    STEPS = buildSteps();
-    if(playing || elapsed >= totalDur()) return;
-    playing = true;
-    lastT = performance.now();
-    syncButtons();
-    rafId = requestAnimationFrame(frame);
-  }
-  function pause(){
-    playing = false;
-    if(rafId) cancelAnimationFrame(rafId);
-    rafId = null;
-    syncButtons();
-  }
-  function hardReset(){
-    if(rafId) cancelAnimationFrame(rafId);
-    rafId = null;
-    playing = false;
-    elapsed = 0;
-    firedTo = 0;
-    usedComboSigs = [];
-    renderState.started = false;
-    clearSequencerFilters();
-    if(descEl) descEl.textContent = DESC_FULL; // vuelve al estado de reposo de la bajada
-    STEPS = buildSteps();
-    renderTimeline();
-    syncButtons();
-  }
-  window.weekPlay.reset = hardReset; // setMode / toRectMode / homeBtn lo cortan
-
-  function syncButtons(){
-    const paused = !playing && elapsed > 0 && elapsed < totalDur();
-    pauseBtn.disabled = !playing && !paused;
-    pauseBtn.textContent = paused ? "Seguir" : "Pausa";
-  }
-
-  // "Comenzar video": si el grabador está disponible, primero pide compartir
-  // la pestaña (una vez) y sólo arranca la secuencia si el usuario acepta;
-  // así la grabación cubre desde la primera letra de la bajada hasta el
-  // final de la viz, las dos diapos de corrido.
-  async function onStartClick(){
-    if(window.squareRecorder){
-      const ok = await window.squareRecorder.begin();
-      if(!ok) return; // canceló el permiso -> no arranca
-    }
-    play(true);
-  }
-  startBtn.addEventListener("click", onStartClick);
-  // "Reproducir sin grabar": corre la misma secuencia pero sin pedir permiso
-  // de compartir pestaña ni generar el .webm -- para previsualizar o mirar
-  // la viz sin la fricción/costo de grabar.
-  if(playBtn) playBtn.addEventListener("click", ()=> play(true));
-  pauseBtn.addEventListener("click", ()=> playing ? pause() : play(false));
-  resetBtn.addEventListener("click", ()=>{
-    if(window.squareRecorder) window.squareRecorder.abort();
-    hardReset();
-  });
-  [bajadaIn, crecerIn, diaIn, todosIn, comboIn].forEach(inp=>{
-    inp.addEventListener("input", ()=>{
-      STEPS = buildSteps();
-      if(!playing) renderTimeline();
-    });
-  });
-  // (los clicks en #weekBtns son filtro de semana, INDEPENDIENTE de este panel
-  //  -- se manejan junto al filtro de días, ver "selectedWeeks")
-
-  renderTimeline();
-  syncButtons();
-})();
-
-/* ---------------------------------------------------------------
-   DESCARGAR — exporta la visualización cuadrada (el marco completo: título,
-   leyenda y árbol) como PNG de exactamente 1920x1920. Usa html2canvas para
-   rasterizar .square-box y después lo re-escala a 1920 en un canvas final,
-   así el tamaño de salida no depende del tamaño en pantalla.
------------------------------------------------------------------- */
-(function(){
-  const btn = document.getElementById("sqDownload");
-  if(!btn) return;
-  btn.addEventListener("click", async ()=>{
-    const box = document.querySelector(".square-box");
-    if(!box || typeof html2canvas !== "function"){
-      alert("No se pudo cargar el exportador (¿sin conexión?).");
-      return;
-    }
-    const label = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "Generando…";
-    try{
-      const rect = box.getBoundingClientRect();
-      const sidePx = Math.min(rect.width, rect.height);
-      const shot = await html2canvas(box, {
-        backgroundColor: getComputedStyle(document.body).backgroundColor || "#f2ecdd",
-        scale: 1920 / sidePx,
-        logging: false,
-        useCORS: true
-      });
-      const out = document.createElement("canvas");
-      out.width = out.height = 1920;
-      const ctx = out.getContext("2d");
-      ctx.fillStyle = "#f2ecdd";
-      ctx.fillRect(0, 0, 1920, 1920);
-      // centra por si html2canvas devolvió una relación no exactamente 1:1
-      const s = Math.min(1920 / shot.width, 1920 / shot.height);
-      const w = shot.width * s, h = shot.height * s;
-      ctx.drawImage(shot, (1920 - w) / 2, (1920 - h) / 2, w, h);
-      const a = document.createElement("a");
-      a.download = "sublimacion-poetica-1920x1920.png";
-      a.href = out.toDataURL("image/png");
-      a.click();
-    }catch(err){
-      console.error(err);
-      alert("No se pudo generar la imagen" + (err && err.message ? ": " + err.message : "") + " (mirá la consola, F12, para más detalle).");
-    }finally{
-      btn.disabled = false;
-      btn.textContent = label;
-    }
-  });
-})();
-
-/* ---------------------------------------------------------------
-   GRABADOR DE VIDEO — al apretar "Comenzar video" en la primera diapo, pide
-   compartir la pestaña (una sola vez) y a partir de ahí recorta y graba SÓLO
-   el recuadro .square-box (título + leyenda + árbol) mientras corren las dos
-   diapos de corrido. Al terminar la secuencia de la viz descarga un .webm.
-
-   Por qué así: MediaRecorder sólo captura un canvas, no el DOM. Con
-   getDisplayMedia se capturan DOM + canvas juntos tal cual se ven; después
-   cada frame se recorta la región de la caja y se compone en un canvas
-   cuadrado de 1080x1080 que es lo que se graba.
-
-   API global: window.squareRecorder.begin()  -> pide permiso, arranca (async, bool)
-               window.squareRecorder.finish() -> corta y guarda el .webm
-               window.squareRecorder.abort()  -> corta y descarta
------------------------------------------------------------------- */
-(function(){
-  const OUT = 1920; // lado del video cuadrado de salida (igual que el PNG)
-  let stream = null, video = null, rec = null, chunks = [];
-  let tickId = null, running = false, safetyT = null, indicator = null;
-
-  function pickMime(){
-    const opts = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
-    for(const m of opts){
-      if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
-    }
-    return "";
-  }
-
-  function showIndicator(on){
-    if(on){
-      if(!indicator){
-        indicator = document.createElement("div");
-        indicator.id = "recDot";
-        indicator.textContent = "● REC";
-        document.body.appendChild(indicator);
-      }
-      indicator.style.display = "block";
-    } else if(indicator){
-      indicator.style.display = "none";
-    }
-  }
-
-  function cleanup(){
-    running = false;
-    if(tickId) cancelAnimationFrame(tickId);
-    tickId = null;
-    if(safetyT) clearTimeout(safetyT);
-    safetyT = null;
-    if(stream){ stream.getTracks().forEach(t=> t.stop()); stream = null; }
-    if(video){ video.srcObject = null; video.remove(); video = null; }
-    rec = null;
-    showIndicator(false);
-  }
-
-  function save(){
-    if(!chunks.length) return;
-    const type = (rec && rec.mimeType) || "video/webm";
-    const ext = type.indexOf("mp4") !== -1 ? "mp4" : "webm";
-    const blob = new Blob(chunks, { type });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "sublimacion-poetica." + ext;
-    a.click();
-    setTimeout(()=> URL.revokeObjectURL(a.href), 15000);
-  }
-
-  async function begin(){
-    if(running) return true;
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.MediaRecorder){
-      alert("Este navegador no permite grabar. Probá en Chrome, o grabá la pantalla a mano.");
-      return false;
-    }
-    try{
-      stream = await navigator.mediaDevices.getDisplayMedia({
-        // pedir un ancho/alto "ideal" grande hace que Chrome renderice la
-        // pestaña a mayor resolución para la captura (no es un simple zoom de
-        // pantalla, es tab capture: redibuja el DOM más nítido), aunque la
-        // ventana en pantalla sea más chica -- así el .webm sale más nítido.
-        video: { frameRate: 30, width: { ideal: 2560 }, height: { ideal: 2560 } },
-        audio: false,
-        preferCurrentTab: true            // Chrome: sugiere "Esta pestaña"
-      });
-    }catch(err){
-      return false; // el usuario canceló el permiso
-    }
-    // si el usuario corta el compartir desde la barra del navegador
-    stream.getVideoTracks()[0].addEventListener("ended", ()=>{ finish(); });
-
-    video = document.createElement("video");
-    video.muted = true;
-    video.playsInline = true;
-    video.srcObject = stream;
-    // fuera de vista pero renderizado (display:none dejaría el frame congelado)
-    video.style.cssText = "position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none";
-    document.body.appendChild(video);
-    await video.play().catch(()=>{});
-
-    const box = document.querySelector(".square-box");
-    const out = document.createElement("canvas");
-    out.width = out.height = OUT;
-    const ctx = out.getContext("2d");
-    ctx.fillStyle = "#f2ecdd";
-
-    const tick = ()=>{
-      if(!running) return;
-      const vw = video.videoWidth, vh = video.videoHeight;
-      if(vw && vh){
-        // la pestaña capturada mapea 1:1 con el viewport (salvo escala por DPR)
-        const sX = vw / window.innerWidth, sY = vh / window.innerHeight;
-        const r = box.getBoundingClientRect();
-        let sx = r.left * sX, sy = r.top * sY;
-        let sw = r.width * sX, sh = r.height * sY;
-        // recorta al área realmente capturada por si la caja se sale un poco
-        sx = Math.max(0, Math.min(sx, vw)); sy = Math.max(0, Math.min(sy, vh));
-        sw = Math.max(1, Math.min(sw, vw - sx)); sh = Math.max(1, Math.min(sh, vh - sy));
-        ctx.fillRect(0, 0, OUT, OUT);
-        try{ ctx.drawImage(video, sx, sy, sw, sh, 0, 0, OUT, OUT); }catch(e){}
-      }
-      tickId = requestAnimationFrame(tick);
-    };
-
-    running = true;
-    tick();
-
-    chunks = [];
-    const mime = pickMime();
-    rec = new MediaRecorder(out.captureStream(30), mime ? { mimeType: mime, videoBitsPerSecond: 16000000 } : undefined);
-    rec.ondataavailable = (e)=>{ if(e.data && e.data.size) chunks.push(e.data); };
-    rec.onstop = ()=>{ save(); cleanup(); };
-    rec.start();
-
-    showIndicator(true);
-    // corte de seguridad por si la cadena de diapos se interrumpe
-    safetyT = setTimeout(()=> finish(), 4 * 60 * 1000);
-    return true;
-  }
-
-  function finish(){
-    if(!running && !rec) return;
-    running = false;
-    if(tickId) cancelAnimationFrame(tickId);
-    tickId = null;
-    if(rec && rec.state !== "inactive"){
-      // deja pasar un frame para no cortar el último instante
-      setTimeout(()=>{ try{ rec.stop(); }catch(e){ cleanup(); } }, 120);
-    } else {
-      cleanup();
-    }
-  }
-
-  function abort(){
-    if(!running && !rec) return;
-    chunks = [];                 // descartar
-    if(rec && rec.state !== "inactive"){
-      rec.onstop = cleanup;
-      try{ rec.stop(); }catch(e){ cleanup(); }
-    } else {
-      cleanup();
-    }
-  }
-
-  window.squareRecorder = { begin, finish, abort };
-})();
 
 /* ---------------------------------------------------------------
    AYUDA / SIMBOLOGÍA — botón "Cómo leer el árbol" (#helpBtn): abre una
@@ -2286,16 +1658,6 @@ const dayGroupEl = document.querySelector(".day-group");
 const rowEstimuloTarget = document.getElementById("rowEstimuloTarget");
 const symbolHeadingEl = document.querySelector("#symbolLegend h2");
 
-// la franja "Color según el día" ahora es horizontal y de ancho completo
-// (ver CSS body.square-viz .day-group / #dayLegend). Ya no se alinea con el
-// texto "Segmentada: con estímulo.", así que sólo se limpia cualquier ancho
-// inline que hubiera quedado seteado.
-function syncDayGroupWidth(){
-  dayGroupEl.style.width = "";
-}
-window.addEventListener("resize", syncDayGroupWidth);
-if(document.fonts) document.fonts.ready.then(syncDayGroupWidth);
-
 function toSquareMode(){
   sqLanding.appendChild(titleEl);
   sqLanding.appendChild(introEl);
@@ -2306,6 +1668,10 @@ function toSquareMode(){
   // en la portada los créditos "De: / Para:" van dentro del landing;
   // en la pantalla viz se mueven debajo del botón (ver toSquareViz)
   sqLanding.appendChild(renderCreditsEl);
+  // en formato web "Color según el día" vive en el panel izquierdo (<header>);
+  // en cuadrado vuelve a la barra de símbolos, como franja horizontal arriba
+  // de la grilla (ver CSS body.square-viz .day-group).
+  symbolLegendEl.appendChild(dayGroupEl);
   sqLegend.appendChild(symbolLegendEl);
   sqCanvas.appendChild(canvasHolderEl);
   document.body.classList.add("square-mode");
@@ -2321,7 +1687,6 @@ function toSquareViz(){
   sqHeader.appendChild(introEl);
   // los créditos pasan de la portada a debajo del botón "Renderizar crecimiento"
   document.querySelector(".symbol-group").appendChild(renderCreditsEl);
-  requestAnimationFrame(syncDayGroupWidth);
   requestAnimationFrame(()=>{ if(window.recomputePlotLayout) window.recomputePlotLayout(); });
 }
 
@@ -2332,11 +1697,12 @@ function toRectMode(){
   controlsEl.appendChild(renderCreditsEl);
   controlsEl.appendChild(modeRowEl);
   headerEl.appendChild(controlsEl);
+  // "Color según el día" vuelve al panel izquierdo, después de los controles
+  headerEl.appendChild(dayGroupEl);
   layoutEl.appendChild(symbolLegendEl);
   layoutEl.appendChild(canvasHolderEl);
   document.body.classList.remove("square-mode", "square-viz", "square-monthly");
   if(window.weekPlay && window.weekPlay.reset) window.weekPlay.reset();
-  dayGroupEl.style.width = "";
 }
 
 new p5((p)=>{
@@ -2405,9 +1771,8 @@ new p5((p)=>{
       fitToHolder(true);
     });
 
-    // arranca en formato CUADRADO (no en el horizontal). El botón sigue
-    // permitiendo volver al formato web.
-    formatBtn.click();
+    // arranca en formato web (horizontal). El botón sigue permitiendo
+    // cambiar a formato cuadrado.
   };
 
   p.windowResized = ()=> fitToHolder();
@@ -2440,14 +1805,18 @@ new p5((p)=>{
       // la columna, así la grilla no se mueve.
       const legendRect = symbolLegendEl.getBoundingClientRect();
       const gridShiftDown = 94; // baja la grilla completa manteniendo la distancia entre líneas
-      const rowSpacingTighten = 48; // sube plotBottom para juntar un poco las líneas de las horas (23:00 queda fijo)
+      const rowSpacingTighten = 62; // sube plotBottom para juntar un poco las líneas de las horas (23:00 queda fijo) -- un poco más que antes para que el árbol quede levemente más bajo
       // el Math.max evita que la primera línea (23:00) se meta debajo de la
       // franja de título + pregunta / quede cortada arriba.
       plotTop = Math.max(34, legendRect.top + 23 - canvasRect.top - 44 + gridShiftDown);
       plotBottom += gridShiftDown - rowSpacingTighten;
       weekLabelY = p.height - 8;
     } else {
+      // plotTop NO se toca (el árbol no se mueve hacia abajo): se achica
+      // sólo subiendo plotBottom, dejando más aire para los botones de
+      // semana debajo del todo
       plotTop = 50;
+      plotBottom -= 32;
       weekLabelY = plotBottom + 24;
     }
     plotLeft = Math.max(96, p.width * 0.1);
@@ -2586,8 +1955,8 @@ new p5((p)=>{
     // en cuadrado la línea no entra en la franja transparente (0..SQ_X_PAD) y
     // además se recorta un poco más por izquierda (+34) para que no se extienda
     // tanto; el tronco sigue centrado según su propio cálculo en drawMonthly.
-    const lineLeft = isSquare ? Math.max(plotAreaLeft, SQ_X_PAD) + 34 : plotLeft + 10;
-    const lineRight = isSquare ? plotAreaRight : plotRight + 20;
+    const lineLeft = isSquare ? Math.max(plotAreaLeft, SQ_X_PAD) + 34 : plotLeft + 60;
+    const lineRight = isSquare ? plotAreaRight : plotRight - 60;
     // labelX ya no depende de lineLeft -- así se puede mover la línea sola
     // sin arrastrar las horas (quedó fijo en la posición que tenía cuando
     // lineLeft todavía era plotLeft+15: (plotLeft+15) - textWidth - 36).
@@ -2666,11 +2035,13 @@ new p5((p)=>{
     const isSq = document.body.classList.contains("square-mode");
     const lineL = isSq ? Math.max(plotAreaLeft, SQ_X_PAD) + 34 : plotAreaLeft;
     const trunkX = (lineL + plotAreaRight) / 2;
-    // los botones de semana (#weekBtns, DOM absoluto dentro de #sqCanvas) se
-    // alinean bajo el tronco: el canvas está corrido -SQ_X_PAD respecto a
-    // #sqCanvas y es SQ_X_PAD más ancho.
-    if(isSq && weekBtnsBox){
-      weekBtnsBox.style.transform = "translateX(" + (trunkX - p.width / 2 - SQ_X_PAD / 2) + "px)";
+    // los botones de semana (#weekBtns, DOM absoluto dentro de #canvas-holder,
+    // centrado vía CSS) se corren con translateX para quedar exactos bajo el
+    // tronco. El <canvas> llena #canvas-holder entero (mismo ancho, sin
+    // corrimiento propio), así que alcanza con la diferencia entre trunkX y
+    // el centro del canvas -- sin términos extra por SQ_X_PAD.
+    if(weekBtnsBox){
+      weekBtnsBox.style.transform = "translateX(" + (trunkX - p.width / 2) + "px)";
     }
     const wp = window.weekPlay;
     // filtro de semanas APARTE (botones #weekBtns): si hay semanas elegidas,
@@ -2694,10 +2065,9 @@ new p5((p)=>{
 
     if(progress > 0) drawTrunk(trunkX, growY, 2);
 
-    // el rótulo de semanas ahora son botones DOM (#weekBtns): se activan (.on)
-    // acá, y quedan prendidos, a medida que el crecimiento ("Renderizar
-    // crecimiento") va revelando los datos de cada semana. En el formato web
-    // (no cuadrado) se mantiene el rótulo dibujado "Semanas 1 – 3".
+    // el rótulo de semanas es siempre los botones DOM (#weekBtns, ver arriba):
+    // se activan (.on) acá, y quedan prendidos, a medida que el crecimiento
+    // ("Renderizar crecimiento") va revelando los datos de cada semana.
     let wpReached = null;      // gate de la reproducción por semanas (#weekPanel)
     let renderReached = null;  // gate de "Renderizar crecimiento": día a día
     let weeksOn = 0;
@@ -2727,9 +2097,6 @@ new p5((p)=>{
       // siguen a la vista). Recién cuentan cuando el tronco terminó de subir
       // (progress >= 1), que es cuando empiezan a aparecer las ramas.
       weeksOn = progress >= 1 ? Math.min(3, Math.ceil(slotsReached / 7)) : 0;
-      if(!document.body.classList.contains("square-mode")) trunkLabel("Semanas 1 – 3", trunkX);
-    } else if(!document.body.classList.contains("square-mode")){
-      trunkLabel("Semanas 1 – 3", trunkX);
     }
     // estado .on de los botones: con filtro manual reflejan las semanas
     // elegidas; si no, se van activando con la reproducción
