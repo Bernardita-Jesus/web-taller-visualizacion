@@ -253,6 +253,7 @@
     order:1;
     overflow:visible;
     padding-left:0;
+    padding-right:54px;
   }
   #symbolLegend h2{
     font-family:'Fraunces',serif;
@@ -285,11 +286,16 @@
   }
   body:not(.square-mode) .symbol-group{
     justify-content:flex-start;
-    margin-top:14px;
+    margin-top:-2px;
   }
+  /* h2 "Cómo leer las ramas" oculto en web -- visibility (no display:none)
+     para que siga ocupando su mismo espacio y así ni "Presencia del
+     registro" ni la línea ni "Visualización para/Proyecto de" se corran
+     de donde ya estaban. */
   body:not(.square-mode) #symbolLegend h2{
+    visibility:hidden;
     font-size:18px;
-    margin-bottom:18px;
+    margin-bottom:0px;
   }
   /* "Color según el día" (h3, ahora dentro de <header>, ver HTML) no tenía
      estilo propio en formato web -- quedaba con el tamaño/tipografía por
@@ -313,7 +319,7 @@
     min-height:0;
     gap:13px;
   }
-  body:not(.square-mode) .symbol-rows{ gap:20px; }
+  body:not(.square-mode) .symbol-rows{ gap:24px; }
   /* baja las 4 filas de simbología respecto al h2 "Cómo leer las ramas" */
   body.square-mode #symbolLegend h2{
     margin-bottom:52px;
@@ -375,7 +381,7 @@
   body:not(.square-mode) .legend-note{
     display:block;
     margin:2px 0 2px;
-    font-size:11.5px;
+    font-size:12.5px;
     line-height:1.45;
     color:var(--muted);
     white-space:normal;
@@ -405,7 +411,11 @@
     font-weight:600;
     color:var(--text);
   }
-  body:not(.square-mode) .row-title{ font-size:14.5px; }
+  /* mismo estilo que "Color según el día" (.day-group h3) en formato web */
+  body:not(.square-mode) .row-title{
+    font-family:'Fraunces',serif;
+    font-size:18px;
+  }
   /* subtítulo + descripción (a completar) debajo de la simbología, sólo en
      formato web -- en cuadrado esa función ya la cumple #renderCredits */
   #legendSubtitle{ display:none; }
@@ -413,44 +423,39 @@
   #legendAuthorLabel{ display:none; }
   #legendAuthors{ display:none; }
   #legendDescription{ display:none; }
+  /* estilo "footer": la simbología de arriba es la protagonista visual
+     (mismo tamaño de siempre para sus íconos/títulos); este bloque de
+     créditos queda chico, gris y discreto, en segundo plano. */
   body:not(.square-mode) #legendSubtitle,
   body:not(.square-mode) #legendAuthorLabel{
     display:block;
-    margin:34px 0 0;
-    font-family:'Fraunces',serif;
+    margin:14px 0 0;
+    font-family:'Inter',sans-serif;
     font-weight:600;
-    font-size:18px;
-    color:var(--text);
+    font-size:10px;
+    letter-spacing:0.4px;
+    text-transform:uppercase;
+    color:var(--muted);
   }
-  /* mismo espacio entre grupos que usa .symbol-rows arriba (gap:17px) */
   body:not(.square-mode) #legendAuthorLabel{
-    margin-top:17px;
+    margin-top:10px;
   }
   /* empuja todo el bloque "Visualización para..." (y lo que sigue) más abajo
-     respecto a la simbología de arriba, con una línea divisoria entre medio */
+     respecto a la simbología de arriba, con una línea divisoria fina entre
+     medio -- discreta, como un footer */
   body:not(.square-mode) #legendSubtitle{
-    margin-top:8px;
+    margin-top:16px;
     padding-top:24px;
     border-top:1px solid var(--border);
   }
-  /* mismo tamaño/tipografía que "Presencia del registro" (.row-title), y
-     mismo espacio título->contenido que usa .symbol-row (margin 3px + gap
-     6px = 9px) */
   body:not(.square-mode) #legendEvent,
   body:not(.square-mode) #legendAuthors{
     display:block;
-    margin:9px 0 0;
+    margin:3px 0 0;
     font-family:'Inter',sans-serif;
-    font-weight:600;
-    font-size:14.5px;
-    color:var(--text);
-  }
-  /* mismo tamaño/tipografía que la bajada debajo de la pregunta (.intro-desc) */
-  body:not(.square-mode) #legendEvent,
-  body:not(.square-mode) #legendAuthors{
     font-weight:400;
-    font-size:13px;
-    line-height:1.5;
+    font-size:10.5px;
+    line-height:1.35;
     color:var(--muted);
   }
   body:not(.square-mode) #legendDescription{
@@ -577,6 +582,8 @@
     cursor:pointer;
   }
   #formatBtn svg{ display:block; }
+  /* sólo en horizontal: separado más del borde derecho */
+  body:not(.square-mode) #formatBtn{ right:48px; bottom:30px; }
   #formatBtn:hover{ background:#e9e0c9; }
   #formatBtn.active{
     background:#2b2620;
@@ -780,6 +787,8 @@
     pointer-events:none;
   }
   #weekBtns button{
+    position:relative;
+    overflow:hidden;
     pointer-events:auto;
     font-family:'Inter',sans-serif;
     font-size:12px;
@@ -792,6 +801,18 @@
     /* como drawMonthly revisa/reaplica .on en cada frame, sin transición el
        botón se veía "pegado"/parpadeando entre estados */
     transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  /* relleno progresivo: drawMonthly va empujando --fill (0% a 100%) a medida
+     que aparecen los datos de esa semana; el pseudo-elemento avanza de
+     izquierda a derecha por debajo del texto (z-index negativo). */
+  #weekBtns button::before{
+    content:"";
+    position:absolute;
+    top:0; bottom:0; left:0;
+    width:var(--fill, 0%);
+    background:#2f6083;
+    z-index:-1;
+    transition:width .1s linear;
   }
   #weekBtns button:hover{ background:#e9e0c9; }
   #weekBtns button.on{
@@ -995,6 +1016,7 @@
 
     <div class="symbol-row">
       <p class="row-title">Magnitud de la pulsión</p>
+      <p class="legend-note">La magnitud corresponde a la intensidad o relevancia de la pulsión por hacer poesía.</p>
       <div class="sym-opt-row">
         <svg class="sym-hit" data-var="magnitud:0" width="44" height="18" viewBox="0 0 44 18">
           <rect x="0" y="0" width="44" height="18" rx="8" fill="transparent"/>
@@ -1313,7 +1335,7 @@ const RENDER_DURATION = 14000; // ms each tree takes to grow fully
 // default y único modo alcanzable desde la UI ahora: un solo tronco siempre
 // (ver #modeWeekly{display:none}); "semanal" queda el código pero inalcanzable.
 let viewMode = "mensual";
-const renderState = { started: false, currentWeek: 0, weekStartTime: 0, monthStartTime: 0 };
+const renderState = { started: false, currentWeek: 0, weekStartTime: 0, monthStartTime: 0, branchStartTime: 0 };
 let branchAppear = new Map();
 // stub: ya no existe el panel de video que reproducía las semanas día a día,
 // pero drawMonthly/setMode/homeBtn siguen consultando window.weekPlay --
@@ -1325,6 +1347,7 @@ function startRender(){
   renderState.currentWeek = 0;
   renderState.weekStartTime = performance.now();
   renderState.monthStartTime = performance.now();
+  renderState.branchStartTime = 0;
   branchAppear = new Map();
 }
 
@@ -1666,6 +1689,8 @@ new p5((p)=>{
 
   const BRANCH_GROW_MS = 1800; // how long each branch takes to extend once it sprouts
   const MONTH_DURATION = RENDER_DURATION * 1.3; // el tronco mensual tarda un poco más porque recibe las 3 semanas
+  const TRUNK_DURATION = MONTH_DURATION * 0.32;   // primero crece todo el tronco...
+  const BRANCH_DURATION = MONTH_DURATION - TRUNK_DURATION; // ...y recién ahí arrancan las ramas, día a día (7 días parejos por semana)
 
   p.draw = ()=>{
     // en formato horizontal la textura de papel arranca desde la línea
@@ -1801,11 +1826,10 @@ new p5((p)=>{
     if(byWeek || manualWeeks){
       progress = 1; // tronco completo para la repro por semanas y el filtro manual
     } else if(renderState.started){
-      // "Renderizar crecimiento": el tronco sube en los primeros ~32% de
-      // MONTH_DURATION (un poco más lento que antes) y luego las ramas se
-      // van revelando día a día.
+      // "Renderizar crecimiento": primero sube el tronco entero (TRUNK_DURATION)
+      // y sólo cuando termina arrancan las ramas, día a día (ver más abajo).
       const el = now - renderState.monthStartTime;
-      progress = easeOutCubic(p.constrain(el / (MONTH_DURATION * 0.32), 0, 1));
+      progress = easeOutCubic(p.constrain(el / TRUNK_DURATION, 0, 1));
     }
     const growY = p.lerp(plotBottom, plotTop, progress);
 
@@ -1816,39 +1840,54 @@ new p5((p)=>{
     // ("Renderizar crecimiento") va revelando los datos de cada semana.
     let wpReached = null;      // gate de la reproducción por semanas (#weekPanel)
     let renderReached = null;  // gate de "Renderizar crecimiento": día a día
-    let weeksOn = 0;
+    const weekFill = [0, 0, 0]; // relleno 0..1 de cada botón, de izquierda a derecha
     if(byWeek){
       const spw = Math.max(0.001, wp.secPerWeek);
       const done = wp.elapsed >= spw * 3 - 1e-6;
       const wkFloat = wp.elapsed / spw;                          // 0..3
       const wkIdx = done ? 2 : Math.min(2, Math.floor(wkFloat)); // semana actual 0..2
       const dayIdx = done ? 6 : Math.min(6, Math.floor((wkFloat % 1) * 7)); // día actual 0..6
-      weeksOn = done ? 3 : wkIdx + 1;
       wpReached = (e)=>{
         if(done) return true;
         const ew = (e.week || 1) - 1;
         return ew < wkIdx || (ew === wkIdx && e.day <= dayIdx);
       };
+      for(let b = 0; b < 3; b++){
+        weekFill[b] = done || b < wkIdx ? 1 : (b === wkIdx ? p.constrain(wkFloat - wkIdx, 0, 1) : 0);
+      }
     } else if(renderState.started && !manualWeeks){
-      // las ramas aparecen en ORDEN DÍA A DÍA: semana 1 lunes..domingo, luego
-      // semana 2, luego semana 3 -- repartido en MONTH_DURATION.
-      const frac = p.constrain((now - renderState.monthStartTime) / MONTH_DURATION, 0, 1);
-      const slotsReached = Math.floor(frac * 21 + 1e-6); // 3 semanas x 7 días
-      renderReached = (e)=>{
-        if(frac >= 1) return true;
-        return (((e.week || 1) - 1) * 7 + e.day) < slotsReached;
-      };
-      // Semana 1/2/3 se prenden de a una a medida que el crecimiento llega a
-      // esa semana, y quedan prendidas (los datos de las semanas anteriores
-      // siguen a la vista). Recién cuentan cuando el tronco terminó de subir
-      // (progress >= 1), que es cuando empiezan a aparecer las ramas.
-      weeksOn = progress >= 1 ? Math.min(3, Math.ceil(slotsReached / 7)) : 0;
+      // las ramas recién arrancan cuando el tronco terminó de crecer del
+      // todo (progress >= 1): ahí se marca branchStartTime una sola vez y,
+      // desde ese instante, aparecen en ORDEN DÍA A DÍA (semana 1 lunes..
+      // domingo, luego semana 2, luego semana 3) repartidas en BRANCH_DURATION
+      // -- así las 3 semanas (7 días cada una) tardan siempre lo mismo.
+      // Mientras el tronco todavía está subiendo (progress < 1) no debe
+      // asomar ninguna rama, aunque su altura ya haya quedado por debajo
+      // de growY -- por eso acá se fuerza renderReached a "false".
+      if(progress < 1){
+        renderReached = ()=> false;
+      } else {
+        if(!renderState.branchStartTime) renderState.branchStartTime = now;
+        const frac = p.constrain((now - renderState.branchStartTime) / BRANCH_DURATION, 0, 1);
+        const slotsReached = Math.floor(frac * 21 + 1e-6); // 3 semanas x 7 días
+        renderReached = (e)=>{
+          if(frac >= 1) return true;
+          return (((e.week || 1) - 1) * 7 + e.day) < slotsReached;
+        };
+        for(let b = 0; b < 3; b++){
+          weekFill[b] = p.constrain((slotsReached - b * 7) / 7, 0, 1);
+        }
+      }
     }
-    // estado .on de los botones: con filtro manual reflejan las semanas
-    // elegidas; si no, se van activando con la reproducción
+    // estado .on/relleno de los botones: con filtro manual reflejan las
+    // semanas elegidas (todo o nada); si no, el relleno avanza de izquierda a
+    // derecha a medida que la reproducción llega a cada semana, y sólo queda
+    // "on" (resaltado sólido) cuando esa semana terminó de rellenarse.
     for(let b = 0; b < weekBtnEls.length; b++){
-      const on = manualWeeks ? selectedWeeks.has(b + 1) : (b < weeksOn);
+      const fill = manualWeeks ? (selectedWeeks.has(b + 1) ? 1 : 0) : weekFill[b];
+      const on = manualWeeks ? selectedWeeks.has(b + 1) : fill >= 1;
       weekBtnEls[b].classList.toggle("on", on);
+      weekBtnEls[b].style.setProperty("--fill", (fill * 100) + "%");
     }
 
     const visible = [];
